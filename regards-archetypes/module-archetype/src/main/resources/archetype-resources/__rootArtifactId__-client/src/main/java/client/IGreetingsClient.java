@@ -52,7 +52,7 @@ public interface IGreetingsClient {
      */
     @RequestMapping(method = RequestMethod.GET, value = "/greeting")
     @ResponseBody
-    public HttpEntity<Resource<Greeting>> greeting(String pName);
+    public HttpEntity<Resource<Greeting>> greeting(String name);
 
     /**
      * Rest resource /api/me/{name} Method GET
@@ -62,6 +62,6 @@ public interface IGreetingsClient {
      */
     @RequestMapping(method = RequestMethod.GET, value = "/me")
     @ResponseBody
-    public HttpEntity<Resource<Greeting>> me(String pName);
+    public HttpEntity<Resource<Greeting>> me(String name);
 
 }

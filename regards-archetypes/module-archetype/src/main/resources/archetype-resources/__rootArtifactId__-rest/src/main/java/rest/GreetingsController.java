@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import fr.cnes.regards.framework.hateoas.IResourceController;
 import fr.cnes.regards.framework.hateoas.IResourceService;
 import fr.cnes.regards.framework.security.annotation.ResourceAccess;
+import fr.cnes.regards.framework.security.role.DefaultRole;
 
 import ${package}.domain.Greeting;
 import ${package}.service.GreetingsService;
@@ -59,7 +60,7 @@ public class GreetingsController implements IResourceController<Greeting> {
 
     @RequestMapping(value = "/greeting", method = RequestMethod.GET)
     @ResponseBody
-    @ResourceAccess(description = "send 'greeting' as response")
+    @ResourceAccess(description = "send 'greeting' as response", role=DefaultRole.PUBLIC)
     public HttpEntity<Resource<Greeting>> greeting(@RequestParam(value = "name", defaultValue = "World") String pName) {
         Greeting greeting = myService.getGreeting(pName);
         return new ResponseEntity<>(new Resource<Greeting>(greeting), HttpStatus.OK);
@@ -67,7 +68,7 @@ public class GreetingsController implements IResourceController<Greeting> {
 
     @RequestMapping(value = "/me", method = RequestMethod.GET)
     @ResponseBody
-    @ResourceAccess(description = "send 'me' as response")
+    @ResourceAccess(description = "send 'me' as response", role=DefaultRole.PUBLIC)
     public HttpEntity<Resource<Greeting>> me(@RequestParam(value = "name", defaultValue = "me") String pName) {
         Greeting greeting = myService.getGreeting(pName);
         return new ResponseEntity<>(new Resource<Greeting>(greeting), HttpStatus.OK);
