@@ -27,7 +27,6 @@ import javax.sql.DataSource;
 import org.hibernate.cfg.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.orm.jpa.JpaProperties;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
@@ -39,6 +38,7 @@ import fr.cnes.regards.framework.amqp.domain.IHandler;
 import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.encryption.IEncryptionService;
 import fr.cnes.regards.framework.jpa.multitenant.exception.JpaMultitenantException;
+import fr.cnes.regards.framework.jpa.multitenant.lock.LockingTaskExecutors;
 import fr.cnes.regards.framework.jpa.multitenant.properties.MultitenantDaoProperties;
 import fr.cnes.regards.framework.jpa.multitenant.properties.TenantConnection;
 import fr.cnes.regards.framework.jpa.multitenant.properties.TenantConnectionState;
@@ -82,6 +82,8 @@ public class MultitenantJpaEventHandler implements ApplicationListener<Applicati
      */
     private final Map<String, DataSource> dataSources;
 
+    private final LockingTaskExecutors lockingTaskExecutors;
+
     /**
      * Microservice global configuration
      */
@@ -100,12 +102,13 @@ public class MultitenantJpaEventHandler implements ApplicationListener<Applicati
     private final JpaProperties jpaProperties;
 
     public MultitenantJpaEventHandler(String microserviceName, Map<String, DataSource> dataSources,
-            MultitenantDaoProperties daoProperties, IDatasourceSchemaHelper datasourceSchemaHelper,
-            IInstanceSubscriber instanceSubscriber, ITenantConnectionResolver multitenantResolver,
-            MultitenantJpaEventPublisher localPublisher, IEncryptionService encryptionService,
-            JpaProperties jpaProperties) {
+            LockingTaskExecutors lockingTaskExecutors, MultitenantDaoProperties daoProperties,
+            IDatasourceSchemaHelper datasourceSchemaHelper, IInstanceSubscriber instanceSubscriber,
+            ITenantConnectionResolver multitenantResolver, MultitenantJpaEventPublisher localPublisher,
+            IEncryptionService encryptionService, JpaProperties jpaProperties) {
         this.microserviceName = microserviceName;
         this.dataSources = dataSources;
+        this.lockingTaskExecutors = lockingTaskExecutors;
         this.daoProperties = daoProperties;
         this.datasourceSchemaHelper = datasourceSchemaHelper;
         this.instanceSubscriber = instanceSubscriber;
@@ -143,9 +146,12 @@ public class MultitenantJpaEventHandler implements ApplicationListener<Applicati
                 // Init data source
                 // before initiating data source, lets decrypt password
                 tenantConnection.setPassword(encryptionService.decrypt(tenantConnection.getPassword()));
-                DataSource dataSource = TenantDataSourceHelper.initDataSource(daoProperties, tenantConnection, schemaIdentifier);
+                DataSource dataSource = TenantDataSourceHelper.initDataSource(daoProperties, tenantConnection,
+                                                                              schemaIdentifier);
                 // Remove existing one
                 DataSource oldDataSource = dataSources.remove(tenantConnection.getTenant());
+                // Remove related lock executor
+                lockingTaskExecutors.removeLockingTaskExecutor(tenantConnection.getTenant());
                 if (oldDataSource != null) {
                     DataSources.destroy(oldDataSource);
                 }
@@ -155,6 +161,8 @@ public class MultitenantJpaEventHandler implements ApplicationListener<Applicati
                 updateConnectionState(tenantConnection.getTenant(), TenantConnectionState.ENABLED, Optional.empty());
                 // Register data source
                 dataSources.put(tenantConnection.getTenant(), dataSource);
+                // Register a lock executor
+                lockingTaskExecutors.registerLockingTaskExecutor(tenantConnection.getTenant(), dataSource);
                 // Broadcast connection ready with a Spring event
                 localPublisher.publishConnectionReady(tenantConnection.getTenant());
             } catch (Exception ex) {
@@ -214,11 +222,13 @@ public class MultitenantJpaEventHandler implements ApplicationListener<Applicati
         @Override
         public void handle(TenantWrapper<TenantConnectionConfigurationDeleted> pEvent) {
 
-            if (pEvent.getContent() != null && microserviceName.equals(pEvent.getContent().getMicroserviceName())) {
+            if ((pEvent.getContent() != null) && microserviceName.equals(pEvent.getContent().getMicroserviceName())) {
                 final TenantConnection tenantConnection = pEvent.getContent().getTenant();
                 try {
                     // Remove existing datasource
                     DataSource oldDataSource = dataSources.remove(tenantConnection.getTenant());
+                    // Remove related lock executor
+                    lockingTaskExecutors.removeLockingTaskExecutor(tenantConnection.getTenant());
                     if (oldDataSource != null) {
                         DataSources.destroy(oldDataSource);
                     }
@@ -242,11 +252,13 @@ public class MultitenantJpaEventHandler implements ApplicationListener<Applicati
         @Override
         public void handle(TenantWrapper<TenantConnectionFailed> pEvent) {
 
-            if (pEvent.getContent() != null && microserviceName.equals(pEvent.getContent().getMicroserviceName())) {
+            if ((pEvent.getContent() != null) && microserviceName.equals(pEvent.getContent().getMicroserviceName())) {
                 final TenantConnectionFailed tcf = pEvent.getContent();
                 try {
                     // Remove existing datasource
                     DataSource oldDataSource = dataSources.remove(tcf.getTenant());
+                    // Remove related lock executor
+                    lockingTaskExecutors.removeLockingTaskExecutor(tcf.getTenant());
                     if (oldDataSource != null) {
                         DataSources.destroy(oldDataSource);
                     }
