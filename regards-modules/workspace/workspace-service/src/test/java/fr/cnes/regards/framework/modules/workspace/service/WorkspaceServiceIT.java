@@ -18,8 +18,8 @@ import fr.cnes.regards.framework.utils.file.ChecksumUtils;
 /**
  * @author Sylvain VISSIERE-GUERINET
  */
-@TestPropertySource(
-        properties = { "regards.cipher.key-location=src/test/resources/testKey", "regards.cipher.iv=1234567812345678" })
+@TestPropertySource(properties = { "regards.cipher.key-location=src/test/resources/testKey",
+        "regards.cipher.iv=1234567812345678", "spring.datasource.type=" })
 public class WorkspaceServiceIT extends AbstractRegardsServiceIT {
 
     @Autowired

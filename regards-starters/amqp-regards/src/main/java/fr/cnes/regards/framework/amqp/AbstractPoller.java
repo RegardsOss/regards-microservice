@@ -28,6 +28,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import fr.cnes.regards.framework.amqp.configuration.IAmqpAdmin;
 import fr.cnes.regards.framework.amqp.configuration.IRabbitVirtualHostAdmin;
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.amqp.event.EventUtils;
 import fr.cnes.regards.framework.amqp.event.IPollable;
 import fr.cnes.regards.framework.amqp.event.Target;
@@ -69,7 +70,7 @@ public abstract class AbstractPoller implements IPollerContract {
     }
 
     @Override
-    public <T extends IPollable> T poll(Class<T> pEvent) {
+    public <T extends IPollable> TenantWrapper<T> poll(Class<T> pEvent) {
         String tenant = resolveTenant();
         return poll(tenant, resolveVirtualHost(tenant), pEvent, WorkerMode.UNICAST,
                     EventUtils.getTargetRestriction(pEvent));
@@ -94,10 +95,11 @@ public abstract class AbstractPoller implements IPollerContract {
      * @param eventType event to poll
      * @param workerMode {@link WorkerMode}
      * @param target {@link Target}
-     * @return event
+     * @return event in a {@link TenantWrapper}
      */
     @SuppressWarnings("unchecked")
-    protected <T> T poll(String tenant, String virtualHost, Class<T> eventType, WorkerMode workerMode, Target target) {
+    protected <T> TenantWrapper<T> poll(String tenant, String virtualHost, Class<T> eventType, WorkerMode workerMode,
+            Target target) {
 
         LOGGER.debug("Polling event {} for tenant {} (Target : {}, WorkerMode : {} )", eventType.getName(), tenant,
                      target, workerMode);
@@ -111,7 +113,7 @@ public abstract class AbstractPoller implements IPollerContract {
             amqpAdmin.declareBinding(queue, exchange, workerMode);
 
             // routing key is unnecessary for fanout exchanges but is for direct exchanges
-            return (T) rabbitTemplate.receiveAndConvert(queue.getName(), 0);
+            return (TenantWrapper<T>) rabbitTemplate.receiveAndConvert(queue.getName(), 0);
         } finally {
             rabbitVirtualHostAdmin.unbind();
         }

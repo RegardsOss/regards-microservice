@@ -18,6 +18,7 @@
  */
 package fr.cnes.regards.framework.amqp;
 
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.amqp.event.IPollable;
 
 /**
@@ -34,5 +35,5 @@ public interface IPollerContract {
      * @param event {@link IPollable} event
      * @return {@link IPollable} event in a tenant wrapper
      */
-    <T extends IPollable> T poll(Class<T> event);
+    <T extends IPollable> TenantWrapper<T> poll(Class<T> event);
 }

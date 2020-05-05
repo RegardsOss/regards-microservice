@@ -26,6 +26,7 @@ import fr.cnes.regards.framework.amqp.configuration.IRabbitVirtualHostAdmin;
 import fr.cnes.regards.framework.amqp.configuration.RabbitVirtualHostAdmin;
 import fr.cnes.regards.framework.amqp.configuration.VirtualHostMode;
 import fr.cnes.regards.framework.amqp.domain.IHandler;
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.amqp.event.tenant.TenantCreatedEvent;
 import fr.cnes.regards.framework.amqp.event.tenant.TenantDeletedEvent;
 
@@ -75,7 +76,8 @@ public class AmqpEventHandler {
     private class TenantCreationHandler implements IHandler<TenantCreatedEvent> {
 
         @Override
-        public void handle(String tenant, TenantCreatedEvent tce) {
+        public void handle(TenantWrapper<TenantCreatedEvent> pWrapper) {
+            TenantCreatedEvent tce = pWrapper.getContent();
             if (VirtualHostMode.MULTI.equals(virtualHostAdmin.getMode())) {
                 virtualHostAdmin.addVhost(RabbitVirtualHostAdmin.getVhostName(tce.getTenant()));
             }
@@ -90,7 +92,8 @@ public class AmqpEventHandler {
     private class TenantDeletionHandler implements IHandler<TenantDeletedEvent> {
 
         @Override
-        public void handle(String tenant, TenantDeletedEvent tde) {
+        public void handle(TenantWrapper<TenantDeletedEvent> pWrapper) {
+            TenantDeletedEvent tde = pWrapper.getContent();
             subscriber.removeTenant(tde.getTenant());
             if (VirtualHostMode.MULTI.equals(virtualHostAdmin.getMode())) {
                 virtualHostAdmin.removeVhost(tde.getTenant());

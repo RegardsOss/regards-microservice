@@ -30,7 +30,6 @@ import fr.cnes.regards.framework.amqp.configuration.IAmqpAdmin;
 import fr.cnes.regards.framework.amqp.configuration.IRabbitVirtualHostAdmin;
 import fr.cnes.regards.framework.amqp.configuration.RabbitVirtualHostAdmin;
 import fr.cnes.regards.framework.amqp.configuration.RegardsErrorHandler;
-import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 import fr.cnes.regards.framework.multitenant.ITenantResolver;
 
 /**
@@ -53,11 +52,8 @@ public class Subscriber extends AbstractSubscriber implements ISubscriber {
     private final ITenantResolver tenantResolver;
 
     public Subscriber(IRabbitVirtualHostAdmin pVirtualHostAdmin, IAmqpAdmin amqpAdmin,
-            MessageConverter jsonMessageConverters, ITenantResolver pTenantResolver, RegardsErrorHandler errorHandler,
-            String microserviceName, IInstancePublisher instancePublisher, IPublisher publisher,
-            IRuntimeTenantResolver runtimeTenantResolver) {
-        super(pVirtualHostAdmin, amqpAdmin, jsonMessageConverters, errorHandler, microserviceName, instancePublisher,
-              publisher, runtimeTenantResolver, pTenantResolver);
+            MessageConverter jsonMessageConverters, ITenantResolver pTenantResolver, RegardsErrorHandler errorHandler) {
+        super(pVirtualHostAdmin, amqpAdmin, jsonMessageConverters, errorHandler);
         tenantResolver = pTenantResolver;
     }
 

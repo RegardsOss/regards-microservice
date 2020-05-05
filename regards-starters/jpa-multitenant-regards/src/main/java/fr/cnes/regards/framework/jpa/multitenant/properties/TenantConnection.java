@@ -26,8 +26,6 @@ import javax.validation.constraints.NotNull;
  */
 public class TenantConnection {
 
-    public static final String DEFAULT_DRIVER_CLASS_NAME = "org.postgresql.Driver";
-
     /**
      * Tenant name
      */
@@ -52,7 +50,7 @@ public class TenantConnection {
     /**
      * Tenant datasource driverClassName
      */
-    private String driverClassName = DEFAULT_DRIVER_CLASS_NAME;
+    private String driverClassName = "org.postgresql.Driver";
 
     /**
      * Tenant connection state

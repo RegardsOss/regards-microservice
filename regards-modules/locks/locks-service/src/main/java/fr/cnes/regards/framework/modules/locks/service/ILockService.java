@@ -1,7 +1,5 @@
 package fr.cnes.regards.framework.modules.locks.service;
 
-import java.sql.BatchUpdateException;
-
 /**
  * Because i'm awesome
  *
@@ -11,7 +9,7 @@ import java.sql.BatchUpdateException;
 public interface ILockService {
 
     /**
-    * Try to obtain a lock with specified name for specified class owner. Skip immediately if cannot obtain the lock!
+    * Try to obtain a lock with specified name for specified class owner. Skip immediatelly if cannot obtain the lock!
     * @param name name of the lock (unique per owner)
     * @param owner owner object of the lock
     * @param expiresIn seconds before lock expiration (at least 1 second)
@@ -37,11 +35,10 @@ public interface ILockService {
     void releaseLock(String name, Object owner);
 
     /**
-    * Try to obtain a lock with specified name for specified class owner. Skip immediately if cannot obtain the lock!
-    * @param name name of the lock (unique per owner)
-    * @param owner owner object of the lock
-    * @param expiresIn seconds before lock expiration (at least 1 second)
-    * @return <code>true</code> if lock has been obtained
-    */
-    boolean obtainLockOrSkipTransactional(String name, Object owner, long expiresIn) throws BatchUpdateException;
+     * @param name
+     * @param owner
+     * @param expiresIn
+     * @return
+     */
+    boolean obtainLockOrSkipTransactional(String name, Object owner, long expiresIn);
 }

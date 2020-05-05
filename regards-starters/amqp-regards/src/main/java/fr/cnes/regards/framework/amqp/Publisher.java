@@ -20,7 +20,6 @@ package fr.cnes.regards.framework.amqp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import fr.cnes.regards.framework.amqp.configuration.IAmqpAdmin;
@@ -48,9 +47,9 @@ public class Publisher extends AbstractPublisher implements IPublisher {
      */
     private final IRuntimeTenantResolver threadTenantResolver;
 
-    public Publisher(IRabbitVirtualHostAdmin pVirtualHostAdmin, RabbitTemplate rabbitTemplate, RabbitAdmin rabbitAdmin,
-            IAmqpAdmin amqpAdmin, IRuntimeTenantResolver pThreadTenantResolver) {
-        super(rabbitTemplate, rabbitAdmin, amqpAdmin, pVirtualHostAdmin);
+    public Publisher(IRabbitVirtualHostAdmin pVirtualHostAdmin, RabbitTemplate rabbitTemplate, IAmqpAdmin amqpAdmin,
+            IRuntimeTenantResolver pThreadTenantResolver) {
+        super(rabbitTemplate, amqpAdmin, pVirtualHostAdmin);
         this.threadTenantResolver = pThreadTenantResolver;
     }
 

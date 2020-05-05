@@ -134,7 +134,8 @@ public class WebSecurityAutoConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(final WebSecurity pWeb) {
-        pWeb.ignoring().antMatchers("/favicon", "/v3/**/*");
+        pWeb.ignoring().antMatchers("/favicon", "/webjars/springfox-swagger-ui/**/*", "/swagger-resources",
+                                    "/swagger-resources/**/*", "/v2/**/*", "/swagger-ui.html");
     }
 
     @Bean

@@ -18,9 +18,6 @@
  */
 package fr.cnes.regards.framework.multitenant.test;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 
 /**
@@ -30,32 +27,21 @@ import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
  */
 public class SingleRuntimeTenantResolver implements IRuntimeTenantResolver {
 
-    @SuppressWarnings("unused")
-    private static final Logger LOGGER = LoggerFactory.getLogger(SingleRuntimeTenantResolver.class);
-
     // Thread safe tenant holder for forced tenant
-    private static final ThreadLocal<String> forcedTenantHolder = new ThreadLocal<>();
+    private static final ThreadLocal<String> tenantHolder = new ThreadLocal<>();
 
-    private static final ThreadLocal<String> currentTenantHolder = new ThreadLocal<>();
-
-    public SingleRuntimeTenantResolver(String tenant) {
-        currentTenantHolder.set(tenant);
+    public SingleRuntimeTenantResolver(final String pTenant) {
+        tenantHolder.set(pTenant);
     }
 
     @Override
     public String getTenant() {
-        // Try to get tenant from tenant holder
-        String tenant = forcedTenantHolder.get();
-        if (tenant != null) {
-            return tenant;
-        }
-        // Try to get current tenant
-        return currentTenantHolder.get();
+        return tenantHolder.get();
     }
 
     @Override
-    public void forceTenant(String tenant) {
-        forcedTenantHolder.set(tenant);
+    public void forceTenant(final String tenant) {
+        tenantHolder.set(tenant);
     }
 
     @Override
@@ -65,7 +51,7 @@ public class SingleRuntimeTenantResolver implements IRuntimeTenantResolver {
 
     @Override
     public void clearTenant() {
-        forcedTenantHolder.remove();
+        tenantHolder.remove();
     }
 
 }

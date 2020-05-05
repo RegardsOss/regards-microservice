@@ -19,10 +19,9 @@
 package fr.cnes.regards.framework.hateoas;
 
 import org.springframework.cglib.core.Converter;
-import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
-import org.springframework.hateoas.LinkRelation;
-import org.springframework.hateoas.RepresentationModel;
+import org.springframework.hateoas.Resource;
+import org.springframework.hateoas.ResourceSupport;
 import org.springframework.util.Assert;
 
 /**
@@ -35,17 +34,17 @@ public interface IResourceService {
      * Convert object to resource
      * @param <T> element to convert
      * @param object object
-     * @return {@link EntityModel}
+     * @return {@link Resource}
      */
-    default <T> EntityModel<T> toResource(T object) {
+    default <T> Resource<T> toResource(T object) {
         Assert.notNull(object, "Object is required");
-        return new EntityModel<>(object);
+        return new Resource<>(object);
     }
 
     /**
-     * Utility method to add a build link to the specified {@link RepresentationModel}
+     * Utility method to add a build link to the specified {@link ResourceSupport}
      */
-    void addLink(RepresentationModel<?> resource, Class<?> controller, String methodName, LinkRelation rel,
+    void addLink(ResourceSupport resource, Class<?> controller, String methodName, String rel,
             MethodParam<?>... methodParams);
 
     /**
@@ -55,13 +54,13 @@ public interface IResourceService {
      * @param rel rel name
      * @param methodParams method parameters
      */
-    Link buildLink(Class<?> controller, String methodName, LinkRelation rel, MethodParam<?>... methodParams);
+    Link buildLink(Class<?> controller, String methodName, String rel, MethodParam<?>... methodParams);
 
     /**
-     * Utility method to add a build link with parameters to the specified {@link RepresentationModel}
+     * Utility method to add a build link with parameters to the specified {@link ResourceSupport}
      */
-    <C> void addLinkWithParams(RepresentationModel<?> resource, Class<C> controller, String methodName,
-            LinkRelation rel, MethodParam<?>... methodParams);
+    <C> void addLinkWithParams(ResourceSupport resource, Class<C> controller, String methodName, String rel,
+            MethodParam<?>... methodParams);
 
     /**
      * Custom way of building link handling request params.
@@ -81,6 +80,5 @@ public interface IResourceService {
      * @param rel rel name
      * @param methodParams method parameters
      */
-    <C> Link buildLinkWithParams(Class<C> controller, String methodName, LinkRelation rel,
-            MethodParam<?>... methodParams);
+    <C> Link buildLinkWithParams(Class<C> controller, String methodName, String rel, MethodParam<?>... methodParams);
 }

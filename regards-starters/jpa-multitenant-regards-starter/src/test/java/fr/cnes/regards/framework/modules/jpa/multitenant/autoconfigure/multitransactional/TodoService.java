@@ -24,9 +24,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.collect.Lists;
-
 import fr.cnes.regards.framework.amqp.IPoller;
 import fr.cnes.regards.framework.amqp.IPublisher;
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.jpa.utils.RegardsTransactional;
 
 /**
@@ -70,10 +70,10 @@ public class TodoService implements ITodoService {
     @RegardsTransactional
     public Todo pollAndSave(boolean pCrash) {
         // Poll todo
-        TodoEvent polled = poller.poll(TodoEvent.class);
+        TenantWrapper<TodoEvent> wrapper = poller.poll(TodoEvent.class);
         // Save in database
         Todo todo = new Todo();
-        todo.setLabel(polled.getLabel());
+        todo.setLabel(wrapper.getContent().getLabel());
         todo = todoRepository.save(todo);
         // Crash?
         if (pCrash) {

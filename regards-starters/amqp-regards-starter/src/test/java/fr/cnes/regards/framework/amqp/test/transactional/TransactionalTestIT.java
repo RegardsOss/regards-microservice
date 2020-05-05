@@ -29,6 +29,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import fr.cnes.regards.framework.amqp.IPublisher;
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.amqp.test.event.PollableInfo;
 
 /**
@@ -36,10 +37,8 @@ import fr.cnes.regards.framework.amqp.test.event.PollableInfo;
  */
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = TransactionalTestConfiguration.class)
-@TestPropertySource(
-        properties = { "regards.amqp.management.mode=MULTI", "regards.tenants=PROJECT, PROJECT1",
-                "regards.tenant=PROJECT", "regards.amqp.internal.transaction=true" },
-        locations = "classpath:amqp.properties")
+@TestPropertySource(properties = { "regards.amqp.management.mode=MULTI", "regards.tenants=PROJECT, PROJECT1",
+        "regards.tenant=PROJECT", "regards.amqp.internal.transaction=true" }, locations = "classpath:amqp.properties")
 public class TransactionalTestIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionalTestIT.class);
@@ -82,16 +81,16 @@ public class TransactionalTestIT {
         }
 
         // Poll message without error
-        PollableInfo polled = pollService.transactionalPoll(PollableInfo.class, false);
+        TenantWrapper<PollableInfo> wrapper = pollService.transactionalPoll(PollableInfo.class, false);
         // Expected message is retrieved and ack on the broker
-        Assert.assertNotNull(polled);
-        PollableInfo received = polled;
+        Assert.assertNotNull(wrapper);
+        PollableInfo received = wrapper.getContent();
         Assert.assertEquals(message, received.getMessage());
 
         // Re-poll message without error
-        polled = pollService.transactionalPoll(PollableInfo.class, false);
+        wrapper = pollService.transactionalPoll(PollableInfo.class, false);
         // No more message on the broker : ack has run properly
-        Assert.assertNull(polled);
+        Assert.assertNull(wrapper);
     }
 
     /**
@@ -116,18 +115,18 @@ public class TransactionalTestIT {
         }
 
         // Poll message without error
-        PollableInfo polled = pollService.transactionalPoll(PollableInfo.class, false);
+        TenantWrapper<PollableInfo> wrapper = pollService.transactionalPoll(PollableInfo.class, false);
         // Verify no message was published
-        Assert.assertNull(polled);
+        Assert.assertNull(wrapper);
 
         // Publish in transaction without error
         publishService.transactionalPublish(info, false, true);
 
         // Poll message without error
-        polled = pollService.transactionalPoll(PollableInfo.class, false);
+        wrapper = pollService.transactionalPoll(PollableInfo.class, false);
         // Expected message is retrieved and ack on the broker
-        Assert.assertNotNull(polled);
-        PollableInfo received = polled;
+        Assert.assertNotNull(wrapper);
+        PollableInfo received = wrapper.getContent();
         Assert.assertEquals(message, received.getMessage());
     }
 }

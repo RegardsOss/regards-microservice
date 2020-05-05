@@ -18,7 +18,6 @@
  */
 package fr.cnes.regards.framework.modules.jobs.service;
 
-import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -130,11 +129,6 @@ public class JobInfoService implements IJobInfoService {
     }
 
     @Override
-    public void saveAll(List<JobInfo> jobInfo) {
-        jobInfoRepository.saveAll(jobInfo);
-    }
-
-    @Override
     public JobInfo lock(JobInfo jobInfo) {
         jobInfo.setLocked(true);
         return save(jobInfo);
@@ -156,7 +150,7 @@ public class JobInfoService implements IJobInfoService {
         for (JobInfo jobInfo : jobInfos) {
             JobStatusInfo status = jobInfo.getStatus();
             jobInfoRepository.updateCompletion(status.getPercentCompleted(), status.getEstimatedCompletion(),
-                                               jobInfo.getId(), OffsetDateTime.now());
+                                               jobInfo.getId());
         }
     }
 

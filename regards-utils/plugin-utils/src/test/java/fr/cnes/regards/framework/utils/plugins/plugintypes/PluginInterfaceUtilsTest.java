@@ -144,8 +144,8 @@ public final class PluginInterfaceUtilsTest extends PluginUtilsTestConstants {
 
         Set<IPluginParam> interfaceParameters = IPluginParam.set(IPluginParam
                 .build(AParameterPluginImplementation.FIELD_NAME, PluginInterfaceUtilsTest.LONG_STR_VALUE));
-        PluginConfiguration pluginConfigurationInterface = PluginConfiguration
-                .build(AParameterPluginImplementation.class, "", interfaceParameters);
+        PluginConfiguration pluginConfigurationInterface = PluginUtils
+                .getPluginConfiguration(interfaceParameters, AParameterPluginImplementation.class);
         Assert.assertNotNull(pluginConfigurationInterface);
         pluginConfigurationInterface.setId(100L);
 
@@ -165,8 +165,7 @@ public final class PluginInterfaceUtilsTest extends PluginUtilsTestConstants {
         /*
          * Instantiate the parent plugin
          */
-        complexPlugin = PluginUtils.getPlugin(PluginConfiguration.build(ComplexPlugin.class, "", complexParameters),
-                                              instantiatedPluginMap);
+        complexPlugin = PluginUtils.getPlugin(complexParameters, ComplexPlugin.class, instantiatedPluginMap);
         Assert.assertNotNull(complexPlugin);
 
         Assert.assertTrue(complexPlugin.add(PluginInterfaceUtilsTest.CINQ, PluginInterfaceUtilsTest.QUATRE) > 0);
@@ -189,8 +188,7 @@ public final class PluginInterfaceUtilsTest extends PluginUtilsTestConstants {
 
         // instantiate plugin
         PluginUtils.setup(PLUGIN_CURRENT_PACKAGE);
-        PluginUtils.getPlugin(PluginConfiguration.build(ComplexErrorPlugin.class, "", complexParameters),
-                              new HashMap<>());
+        PluginUtils.getPlugin(complexParameters, ComplexErrorPlugin.class, new HashMap<>());
     }
 
     @Test(expected = PluginUtilsRuntimeException.class)
@@ -204,8 +202,7 @@ public final class PluginInterfaceUtilsTest extends PluginUtilsTestConstants {
 
         // instantiate plugin
         PluginUtils.setup(PLUGIN_CURRENT_PACKAGE);
-        PluginUtils.getPlugin(PluginConfiguration.build(ComplexErrorPlugin.class, "", complexParameters),
-                              new HashMap<>());
+        PluginUtils.getPlugin(complexParameters, ComplexErrorPlugin.class, new HashMap<>());
     }
 
 }

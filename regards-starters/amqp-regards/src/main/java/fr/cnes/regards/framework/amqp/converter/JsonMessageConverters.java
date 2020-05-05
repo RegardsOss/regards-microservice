@@ -18,6 +18,8 @@
  */
 package fr.cnes.regards.framework.amqp.converter;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -29,12 +31,9 @@ import org.springframework.amqp.support.converter.MessageConversionException;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.util.Assert;
 
-import fr.cnes.regards.framework.amqp.configuration.AmqpConstants;
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.amqp.event.EventUtils;
-import fr.cnes.regards.framework.amqp.event.IPollable;
-import fr.cnes.regards.framework.amqp.event.ISubscribable;
 import fr.cnes.regards.framework.amqp.event.JsonMessageConverter;
-import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 
 /**
  * JSON message converters manager
@@ -46,61 +45,29 @@ public class JsonMessageConverters implements MessageConverter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonMessageConverters.class);
 
-    /**
-     * Use {@link AmqpConstants#REGARDS_CONVERTER_HEADER} instead.
-     * Will be remove in V1.2
-     */
-    @Deprecated
     private static final String CONVERTER_TYPE_HEADER = "__ctype__";
-
-    private final IRuntimeTenantResolver runtimeTenantResolver;
 
     /**
      * Registered JSON message converters
      */
     private final ConcurrentMap<JsonMessageConverter, MessageConverter> converters = new ConcurrentHashMap<>();
 
-    public JsonMessageConverters(IRuntimeTenantResolver runtimeTenantResolver) {
-        this.runtimeTenantResolver = runtimeTenantResolver;
-    }
-
     @Override
     public Message toMessage(Object object, MessageProperties messageProperties) throws MessageConversionException {
-        return selectConverter(object, messageProperties).toMessage(object, messageProperties);
+        // Retrieve wrapper event
+        TenantWrapper<?> wrapper = (TenantWrapper<?>) object;
+        JsonMessageConverter jmc = EventUtils.getMessageConverter(wrapper.getContent().getClass());
+        // Add converter selector
+        messageProperties.getHeaders().put(JsonMessageConverters.CONVERTER_TYPE_HEADER, jmc);
+        // Add wrapped type information for Gson deserialization
+        messageProperties.getHeaders().put(Gson2JsonMessageConverter.WRAPPED_TYPE_HEADER,
+                                           wrapper.getContent().getClass().getName());
+        return selectConverter(jmc).toMessage(object, messageProperties);
     }
 
     @Override
     public Object fromMessage(Message message) throws MessageConversionException {
-
-        MessageProperties messageProperties = message.getMessageProperties();
-        if (messageProperties == null) {
-            String errorMessage = "Missing message properties";
-            LOGGER.error(errorMessage);
-            throw new MessageConversionException(errorMessage);
-        }
-
-        String tenant = messageProperties.getHeader(AmqpConstants.REGARDS_TENANT_HEADER);
-        String runtimeTenant = runtimeTenantResolver.getTenant();
-
-        // Check if tenant already set and match!
-        if ((tenant != null) && (runtimeTenant != null) && !runtimeTenant.equals(tenant)) {
-            String errorMessage = String
-                    .format("Inconsistent tenant resolution : runtime tenant \"%s\" does not match with message one : \"%s\"",
-                            runtimeTenant, tenant);
-            LOGGER.error(errorMessage);
-            throw new MessageConversionException(errorMessage);
-        }
-
-        try {
-            if ((tenant != null) && (runtimeTenant == null)) {
-                runtimeTenantResolver.forceTenant(tenant);
-            }
-            return selectConverter(message.getMessageProperties()).fromMessage(message);
-        } finally {
-            if ((tenant != null) && (runtimeTenant == null)) {
-                runtimeTenantResolver.clearTenant();
-            }
-        }
+        return selectConverter(message.getMessageProperties()).fromMessage(message);
     }
 
     public void registerConverter(JsonMessageConverter converterType, MessageConverter converter) {
@@ -119,32 +86,18 @@ public class JsonMessageConverters implements MessageConverter {
         return converter;
     }
 
-    private MessageConverter selectConverter(Object object, MessageProperties messageProperties)
-            throws MessageConversionException {
-        if (ISubscribable.class.isAssignableFrom(object.getClass())
-                || IPollable.class.isAssignableFrom(object.getClass())) {
-            JsonMessageConverter jmc = EventUtils.getMessageConverter(object.getClass());
-            MessageConverter converter = selectConverter(jmc);
-            // Inject converter selector
-            messageProperties.setHeader(AmqpConstants.REGARDS_CONVERTER_HEADER, jmc);
-            return converter;
-        } else {
-            return selectConverter(messageProperties);
-        }
-
-    }
-
     private MessageConverter selectConverter(MessageProperties messageProperties) throws MessageConversionException {
-
-        Object converterType = messageProperties.getHeader(AmqpConstants.REGARDS_CONVERTER_HEADER);
-        if (converterType == null) {
-            // Compatibility
-            converterType = messageProperties.getHeader(CONVERTER_TYPE_HEADER);
+        if (messageProperties == null) {
+            String errorMessage = "Missing message properties";
+            LOGGER.error(errorMessage);
+            throw new MessageConversionException(errorMessage);
         }
+
+        Object converterType = messageProperties.getHeaders().get(CONVERTER_TYPE_HEADER);
         if (converterType == null) {
-            String message = "Cannot determine JSON converter type, falling back to GSON";
+            String message = "Cannot determine JSON converter type, falling back to Jackson";
             LOGGER.trace(message);
-            converterType = JsonMessageConverter.GSON.toString();
+            converterType = JsonMessageConverter.JACKSON.toString();
             // FIXME remove above behavior only enabled for compatibility and uncomment following lines
             //            String errorMessage = "Cannot determine JSON converter type";
             //            LOGGER.error(errorMessage);

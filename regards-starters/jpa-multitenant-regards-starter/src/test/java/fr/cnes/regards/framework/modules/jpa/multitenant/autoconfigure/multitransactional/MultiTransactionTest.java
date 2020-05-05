@@ -33,6 +33,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import fr.cnes.regards.framework.amqp.IPoller;
 import fr.cnes.regards.framework.amqp.IPublisher;
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 
 /**
@@ -82,8 +83,8 @@ public class MultiTransactionTest {
         }
 
         // Test whether no message was published
-        TodoEvent polled = poller.poll(TodoEvent.class);
-        Assert.assertNull(polled);
+        TenantWrapper<TodoEvent> wrapper = poller.poll(TodoEvent.class);
+        Assert.assertNull(wrapper);
 
         // Test nothing was saved on database
         List<Todo> todos = todoService.findAll();
@@ -100,9 +101,9 @@ public class MultiTransactionTest {
         Assert.assertNotNull(saved.getId());
 
         // Test whether a message was published on the broker
-        TodoEvent polled = poller.poll(TodoEvent.class);
-        Assert.assertNotNull(polled);
-        Assert.assertEquals(todo.getLabel(), polled.getLabel());
+        TenantWrapper<TodoEvent> wrapper = poller.poll(TodoEvent.class);
+        Assert.assertNotNull(wrapper);
+        Assert.assertEquals(todo.getLabel(), wrapper.getContent().getLabel());
 
         // Test todo was saved on database
         List<Todo> todos = todoService.findAll();
@@ -127,8 +128,8 @@ public class MultiTransactionTest {
         }
 
         // Test whether message already ready to be polled on the broker
-        TodoEvent polled = poller.poll(TodoEvent.class);
-        Assert.assertNotNull(polled);
+        TenantWrapper<TodoEvent> wrapper = poller.poll(TodoEvent.class);
+        Assert.assertNotNull(wrapper);
 
         // Test nothing was saved on database
         List<Todo> todos = todoService.findAll();
@@ -148,8 +149,8 @@ public class MultiTransactionTest {
         todoService.pollAndSave(false);
 
         // Test whether message was consumed on the broker
-        TodoEvent polled = poller.poll(TodoEvent.class);
-        Assert.assertNull(polled);
+        TenantWrapper<TodoEvent> wrapper = poller.poll(TodoEvent.class);
+        Assert.assertNull(wrapper);
 
         // Test todo was saved on database
         List<Todo> todos = todoService.findAll();

@@ -45,7 +45,6 @@ import org.hibernate.annotations.TypeDef;
 import org.hibernate.annotations.TypeDefs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.Nullable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -55,7 +54,6 @@ import fr.cnes.regards.framework.jpa.IIdentifiable;
 import fr.cnes.regards.framework.jpa.json.JsonBinaryType;
 import fr.cnes.regards.framework.jpa.json.JsonTypeDescriptor;
 import fr.cnes.regards.framework.module.manager.ConfigIgnore;
-import fr.cnes.regards.framework.modules.plugins.annotations.Plugin;
 import fr.cnes.regards.framework.modules.plugins.domain.parameter.AbstractPluginParam;
 import fr.cnes.regards.framework.modules.plugins.domain.parameter.IPluginParam;
 
@@ -192,11 +190,10 @@ public class PluginConfiguration implements IIdentifiable<Long> {
     }
 
     /**
-     * Main constructor
+     * A constructor with {@link PluginMetaData} and list of {@link AbstractPluginParam}.
      * @param label the label
      * @param parameters the list of parameters
      * @param order the order
-     * @param pluginId plugin identifier
      */
     public PluginConfiguration(String label, Collection<IPluginParam> parameters, int order, String pluginId) {
         super();
@@ -208,48 +205,6 @@ public class PluginConfiguration implements IIdentifiable<Long> {
         priorityOrder = order;
         this.label = label;
         active = Boolean.TRUE;
-    }
-
-    /**
-     * Build a new plugin configuration
-     * @param pluginId the {@link Plugin#id()}.
-     * @param label the configuration label (if <code>null</code>, a random label is generated)
-     * @param parameters the list of parameters
-     * @param order the order
-     */
-    public static PluginConfiguration build(String pluginId, @Nullable String label,
-            @Nullable Collection<IPluginParam> parameters, int order) {
-        if (label == null) {
-            label = UUID.randomUUID().toString();
-        }
-        return new PluginConfiguration(label, parameters, 0, pluginId);
-    }
-
-    /**
-     * Build a new plugin configuration
-     * @param pluginId the {@link Plugin#id()}.
-     * @param label the configuration label (if <code>null</code>, a random label is generated)
-     * @param parameters the list of parameters
-     */
-    public static PluginConfiguration build(String pluginId, @Nullable String label,
-            @Nullable Collection<IPluginParam> parameters) {
-        return build(pluginId, label, parameters, 0);
-    }
-
-    /**
-     * Build a new plugin configuration
-     * @param pluginType the {@link Class} annotated with {@link Plugin}.
-     * @param label the configuration label (if <code>null</code>, a random label is generated)
-     * @param parameters the list of parameters
-     */
-    public static PluginConfiguration build(Class<?> pluginType, @Nullable String label,
-            @Nullable Collection<IPluginParam> parameters) {
-        Plugin plugin = pluginType.getAnnotation(Plugin.class);
-        if (plugin == null) {
-            throw new IllegalArgumentException(
-                    String.format("Plugin type \"%s\" must be annotated with plugin annotation", pluginType.getName()));
-        }
-        return build(plugin.id(), label, parameters, 0);
     }
 
     public PluginMetaData getMetaData() {
@@ -270,7 +225,7 @@ public class PluginConfiguration implements IIdentifiable<Long> {
      */
     public IPluginParam getParameter(String name) {
         for (IPluginParam p : parameters) {
-            if (p != null && p.getName().equals(name)) {
+            if ((p != null) && p.getName().equals(name)) {
                 return p;
             }
         }
@@ -283,7 +238,7 @@ public class PluginConfiguration implements IIdentifiable<Long> {
      */
     public Object getParameterValue(String name) {
         for (IPluginParam p : parameters) {
-            if (p != null && p.getName().equals(name)) {
+            if ((p != null) && p.getName().equals(name)) {
                 return p.getValue();
             }
         }
@@ -345,7 +300,7 @@ public class PluginConfiguration implements IIdentifiable<Long> {
 
     public final void setParameters(Set<IPluginParam> parameters) {
         this.parameters.clear();
-        if (parameters != null && !parameters.isEmpty()) {
+        if ((parameters != null) && !parameters.isEmpty()) {
             this.parameters.addAll(parameters);
         }
     }
@@ -417,8 +372,8 @@ public class PluginConfiguration implements IIdentifiable<Long> {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + (businessId == null ? 0 : businessId.hashCode());
-        result = prime * result + (pluginId == null ? 0 : pluginId.hashCode());
+        result = (prime * result) + (businessId == null ? 0 : businessId.hashCode());
+        result = (prime * result) + (pluginId == null ? 0 : pluginId.hashCode());
         return result;
     }
 

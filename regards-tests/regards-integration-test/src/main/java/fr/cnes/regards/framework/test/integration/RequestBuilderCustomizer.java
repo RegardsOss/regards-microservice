@@ -11,8 +11,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
+import java.util.Optional;
 import org.assertj.core.util.Lists;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
@@ -157,21 +157,12 @@ public class RequestBuilderCustomizer {
     }
 
     /**
-     * Allows to perform Delete request with body
-     */
-    protected ResultActions performDelete(MockMvc mvc, String urlTemplate, String authToken, Object content,
-            String errorMsg, Object... urlVariables) {
-        return performRequest(mvc, getRequestBuilder(authToken, HttpMethod.DELETE, content, urlTemplate, urlVariables),
-                              errorMsg);
-    }
-
-    /**
      * Allows to perform PUT request
      */
     protected ResultActions performPut(MockMvc mvc, String urlTemplate, String authToken, Object content,
             String errorMsg, Object... urlVariables) {
         return performRequest(mvc, getRequestBuilder(authToken, HttpMethod.PUT, content, urlTemplate, urlVariables),
-                              errorMsg);
+                errorMsg);
     }
 
     /**
@@ -180,7 +171,7 @@ public class RequestBuilderCustomizer {
     protected ResultActions performPatch(MockMvc mvc, String urlTemplate, String authToken, Object content,
             String errorMsg, Object... urlVariables) {
         return performRequest(mvc, getRequestBuilder(authToken, HttpMethod.PATCH, content, urlTemplate, urlVariables),
-                              errorMsg);
+                errorMsg);
     }
 
     /**
@@ -251,7 +242,6 @@ public class RequestBuilderCustomizer {
      * Set or add given value to associated header name values.<br/>
      * Warning : calling this method, {@link #DEFAULT_HEADERS} are not added to the request so you have to do it by yourself if needed.
      */
-    @SuppressWarnings("javadoc")
     public RequestBuilderCustomizer addHeader(String name, String value) {
         headers.add(name, value);
         return this;
@@ -261,7 +251,6 @@ public class RequestBuilderCustomizer {
      * Set or replace given values to associated header name values.<br/>
      * Warning : calling this method, {@link #DEFAULT_HEADERS} are not added to the request so you have to do it by yourself if needed.
      */
-    @SuppressWarnings("javadoc")
     public RequestBuilderCustomizer addHeader(String name, List<String> values) {
         headers.put(name, values);
         return this;
@@ -271,7 +260,6 @@ public class RequestBuilderCustomizer {
      * Set or replace given values to associated header name values.<br/>
      * Warning : calling this method, {@link #DEFAULT_HEADERS} are not added to the request so you have to do it by yourself if needed.
      */
-    @SuppressWarnings("javadoc")
     public RequestBuilderCustomizer addHeaders(Map<String, List<String>> headers) {
         this.headers.putAll(headers);
         return this;
@@ -413,10 +401,10 @@ public class RequestBuilderCustomizer {
 
     /**
      * Add snippets to be used to generate specific documentation.
-     * To document request parameters (aka GET params) you better use {@link #documentRequestParameters(List)} <br/>
-     * To document path parameters you better use {@link #documentPathParameters(List)} <br/>
-     * To document request body you better use {@link #documentRequestBody(List)} <br/>
-     * To document response body you better use {@link #documentResponseBody(List)} <br/>
+     * To document request parameters (aka GET params) you better use {@link #documentRequestParameters(List<ParameterDescriptor>)} <br/>
+     * To document path parameters you better use {@link #documentPathParameters(List<ParameterDescriptor>)} <br/>
+     * To document request body you better use {@link #documentRequestBody(List<FieldDescriptor>)} <br/>
+     * To document response body you better use {@link #documentResponseBody(List<FieldDescriptor>)} <br/>
      * @param snippet documentation snippet to be added.
      */
     public RequestBuilderCustomizer document(Snippet snippet) {
@@ -424,10 +412,10 @@ public class RequestBuilderCustomizer {
         return this;
     }
 
+
     public RequestBuilderCustomizer documentRequestParameters(List<ParameterDescriptor> descriptors) {
         return documentRequestParameters(descriptors.toArray(new ParameterDescriptor[0]));
     }
-
     public RequestBuilderCustomizer documentRequestParameters(ParameterDescriptor... descriptors) {
         Optional<Snippet> optionalExistingSnippet = docSnippets.stream()
                 .filter(docSnippet -> docSnippet instanceof RequestParametersSnippet).findFirst();
@@ -444,7 +432,6 @@ public class RequestBuilderCustomizer {
     public RequestBuilderCustomizer documentRequestBody(List<FieldDescriptor> descriptors) {
         return documentRequestBody(descriptors.toArray(new FieldDescriptor[0]));
     }
-
     public RequestBuilderCustomizer documentRequestBody(FieldDescriptor... descriptors) {
         Optional<Snippet> optionalExistingSnippet = docSnippets.stream()
                 .filter(docSnippet -> docSnippet instanceof RequestFieldsSnippet).findFirst();
@@ -461,7 +448,6 @@ public class RequestBuilderCustomizer {
     public RequestBuilderCustomizer documentPathParameters(List<ParameterDescriptor> descriptors) {
         return documentPathParameters(descriptors.toArray(new ParameterDescriptor[0]));
     }
-
     public RequestBuilderCustomizer documentPathParameters(ParameterDescriptor... descriptors) {
         Optional<Snippet> optionalExistingSnippet = docSnippets.stream()
                 .filter(docSnippet -> docSnippet instanceof PathParametersSnippet).findFirst();
@@ -480,7 +466,6 @@ public class RequestBuilderCustomizer {
     public RequestBuilderCustomizer documentResponseBody(List<FieldDescriptor> descriptors) {
         return documentResponseBody(descriptors.toArray(new FieldDescriptor[0]));
     }
-
     public RequestBuilderCustomizer documentResponseBody(FieldDescriptor... descriptors) {
         Optional<Snippet> optionalExistingSnippet = docSnippets.stream()
                 .filter(docSnippet -> docSnippet instanceof ResponseFieldsSnippet).findFirst();

@@ -22,53 +22,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @param <M> Type of message you are handling
+ * @param <T> Type of Event you are handling
  *
  * Interface identifying classes that can handle message from the broker
  * @author svissier
  */
-public interface IHandler<M> {
+public interface IHandler<T> {
 
     /**
      * Logger instance
      */
     Logger LOGGER = LoggerFactory.getLogger(IHandler.class);
 
-    /**
-     * User {@link #handleAndLog(String, Object)} instead.
-     * @param wrapper
-     */
-    @Deprecated
-    default void handleAndLog(TenantWrapper<M> wrapper) {
+    default void handleAndLog(TenantWrapper<T> wrapper) {
         LOGGER.debug("Received {}, From {}", wrapper.getContent().getClass().getSimpleName(), wrapper.getTenant());
         LOGGER.trace("Event received: {}", wrapper.getContent().toString());
         handle(wrapper);
     }
 
-    default void handleAndLog(String tenant, M message) {
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Received {}, From {}", message.getClass().getSimpleName(), tenant);
-            LOGGER.trace("Event received: {}", message.toString());
-        }
-        handle(tenant, message);
-    }
-
-    /**
-     * Use {@link #handle(String, Object)} instead.
-     */
-    @Deprecated
-    default void handle(TenantWrapper<M> wrapper) {
-        throw new UnsupportedOperationException("This method is deprecated");
-    }
-
-    default void handle(String tenant, M message) {
-        // Default implementation for compatibility
-        // This interface will be required in next version
-        handle(TenantWrapper.build(message, tenant));
-    }
+    void handle(TenantWrapper<T> wrapper);
 
     @SuppressWarnings("unchecked")
-    default Class<? extends IHandler<M>> getType() {
-        return (Class<? extends IHandler<M>>) this.getClass();
+    default Class<? extends IHandler<T>> getType() {
+        return (Class<? extends IHandler<T>>) this.getClass();
     }
 }

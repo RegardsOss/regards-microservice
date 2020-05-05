@@ -33,17 +33,6 @@ public final class AmqpConstants {
 
     public static final String INSTANCE_TENANT = "instance";
 
-    /**
-     * Headers
-     */
-    public static final String REGARDS_HEADER_NS = "regards.";
-
-    public static final String REGARDS_TENANT_HEADER = REGARDS_HEADER_NS + "tenant";
-
-    public static final String REGARDS_CONVERTER_HEADER = REGARDS_HEADER_NS + "converter";
-
-    public static final String REGARDS_TYPE_HEADER = REGARDS_HEADER_NS + "type";
-
     private AmqpConstants() {
     }
 }

@@ -25,8 +25,6 @@ import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.support.converter.MessageConverter;
 
 import fr.cnes.regards.framework.amqp.AbstractSubscriber;
-import fr.cnes.regards.framework.amqp.IInstancePublisher;
-import fr.cnes.regards.framework.amqp.IPublisher;
 import fr.cnes.regards.framework.amqp.ISubscriber;
 import fr.cnes.regards.framework.amqp.configuration.AmqpConstants;
 import fr.cnes.regards.framework.amqp.configuration.IAmqpAdmin;
@@ -36,7 +34,6 @@ import fr.cnes.regards.framework.amqp.event.EventUtils;
 import fr.cnes.regards.framework.amqp.event.ISubscribable;
 import fr.cnes.regards.framework.amqp.event.Target;
 import fr.cnes.regards.framework.amqp.event.WorkerMode;
-import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 import fr.cnes.regards.framework.multitenant.ITenantResolver;
 
 /**
@@ -48,11 +45,8 @@ public class SingleVhostSubscriber extends AbstractSubscriber implements ISubscr
     private final ITenantResolver tenantResolver;
 
     public SingleVhostSubscriber(IRabbitVirtualHostAdmin virtualHostAdmin, IAmqpAdmin amqpAdmin,
-            MessageConverter jsonMessageConverters, ITenantResolver tenantResolver, RegardsErrorHandler errorHandler,
-            String microserviceName, IInstancePublisher instancePublisher, IPublisher publisher,
-            IRuntimeTenantResolver runtimeTenantResolver) {
-        super(virtualHostAdmin, amqpAdmin, jsonMessageConverters, errorHandler, microserviceName, instancePublisher,
-              publisher, runtimeTenantResolver, tenantResolver);
+            MessageConverter jsonMessageConverters, ITenantResolver tenantResolver, RegardsErrorHandler errorHandler) {
+        super(virtualHostAdmin, amqpAdmin, jsonMessageConverters, errorHandler);
         this.tenantResolver = tenantResolver;
     }
 

@@ -30,6 +30,7 @@ import fr.cnes.regards.framework.amqp.IPoller;
 import fr.cnes.regards.framework.amqp.IPublisher;
 import fr.cnes.regards.framework.amqp.configuration.IRabbitVirtualHostAdmin;
 import fr.cnes.regards.framework.amqp.configuration.VirtualHostMode;
+import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
 import fr.cnes.regards.framework.amqp.exception.RabbitMQVhostException;
 import fr.cnes.regards.framework.amqp.test.event.PollableInfo;
 import fr.cnes.regards.framework.amqp.test.event.PollableMicroserviceInfo;
@@ -73,13 +74,13 @@ public abstract class AbstractPollerIT {
         publisher.publish(info);
 
         // Simulate worker
-        PollableInfo polled = poller.poll(PollableInfo.class);
-        Assert.assertNotNull(polled);
-        Assert.assertEquals(PollableInfo.class, polled.getClass());
-        Assert.assertEquals(message, polled.getMessage());
+        TenantWrapper<PollableInfo> wrapper = poller.poll(PollableInfo.class);
+        Assert.assertNotNull(wrapper);
+        Assert.assertEquals(PollableInfo.class, wrapper.getContent().getClass());
+        Assert.assertEquals(message, wrapper.getContent().getMessage());
 
-        polled = poller.poll(PollableInfo.class);
-        Assert.assertNull(polled);
+        wrapper = poller.poll(PollableInfo.class);
+        Assert.assertNull(wrapper);
     }
 
     /**
@@ -96,12 +97,12 @@ public abstract class AbstractPollerIT {
         publisher.publish(info);
 
         // Simulate worker
-        PollableMicroserviceInfo polled = poller.poll(PollableMicroserviceInfo.class);
-        Assert.assertNotNull(polled);
-        Assert.assertEquals(PollableMicroserviceInfo.class, polled.getClass());
-        Assert.assertEquals(message, polled.getMessage());
+        TenantWrapper<PollableMicroserviceInfo> wrapper = poller.poll(PollableMicroserviceInfo.class);
+        Assert.assertNotNull(wrapper);
+        Assert.assertEquals(PollableMicroserviceInfo.class, wrapper.getContent().getClass());
+        Assert.assertEquals(message, wrapper.getContent().getMessage());
 
-        polled = poller.poll(PollableMicroserviceInfo.class);
-        Assert.assertNull(polled);
+        wrapper = poller.poll(PollableMicroserviceInfo.class);
+        Assert.assertNull(wrapper);
     }
 }

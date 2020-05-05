@@ -24,7 +24,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Observable;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,10 +44,6 @@ import fr.cnes.regards.framework.modules.jobs.domain.function.CheckedSupplier;
 public abstract class AbstractJob<R> extends Observable implements IJob<R> {
 
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
-
-    protected static final String INFO_TAB = " >>>>> ";
-
-    protected UUID jobInfoId;
 
     protected R result;
 
@@ -166,15 +161,6 @@ public abstract class AbstractJob<R> extends Observable implements IJob<R> {
 
     protected <T> Optional<T> getOptionalValue(Map<String, JobParameter> parameters, String parameterName) {
         return IJob.getOptionalValue(parameters, parameterName, null);
-    }
-
-    protected UUID getJobInfoId() {
-        return jobInfoId;
-    }
-
-    @Override
-    public void setJobInfoId(UUID jobInfoId) {
-        this.jobInfoId = jobInfoId;
     }
 
 }
