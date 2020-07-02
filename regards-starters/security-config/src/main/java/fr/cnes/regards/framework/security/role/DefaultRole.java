@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -27,13 +27,16 @@ public enum DefaultRole {
     /**
      * Cross tenant role / useful for cross tenant endpoints
      */
-    // FIXME do not accept a new role with this name
     INSTANCE_ADMIN,
 
     /**
      * Tenant main administrator
      */
     PROJECT_ADMIN,
+    /**
+     * Tenant exploit
+     */
+    EXPLOIT,
 
     /**
      * Tenant administrator

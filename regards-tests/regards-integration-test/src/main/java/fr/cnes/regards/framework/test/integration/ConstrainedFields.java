@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -77,7 +77,7 @@ public class ConstrainedFields {
      */
     public FieldDescriptor withPath(String payloadPrefixPath, String payloadPath, String propertyPath,
             String description, String extraConstraints) {
-        StringBuffer constraints = new StringBuffer(StringUtils.collectionToDelimitedString(
+        StringBuilder constraints = new StringBuilder(StringUtils.collectionToDelimitedString(
                 constraintDescriptions.descriptionsForProperty(propertyPath), ", "));
         if (extraConstraints != null) {
             if (constraints.length() > 0) {
@@ -101,5 +101,13 @@ public class ConstrainedFields {
 
         return PayloadDocumentation.fieldWithPath(fullPayloadPath).description(description)
                 .attributes(Attributes.key(RequestBuilderCustomizer.PARAM_CONSTRAINTS).value(constraints));
+    }
+
+    /**
+     * Mark every sub property to the provided path to ignore
+     * @param payloadPath payload path
+     */
+    public FieldDescriptor ignoreSubsectionWithPath(String payloadPath) {
+        return PayloadDocumentation.subsectionWithPath(payloadPath).ignored();
     }
 }

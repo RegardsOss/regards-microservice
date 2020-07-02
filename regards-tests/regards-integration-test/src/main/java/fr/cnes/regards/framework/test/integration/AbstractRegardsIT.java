@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -34,6 +34,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.annotation.DirtiesContext.HierarchyMode;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -52,6 +55,7 @@ import fr.cnes.regards.framework.security.endpoint.MethodAuthorizationService;
  * @author Sébastien Binda
  */
 @SpringBootTest(classes = TestApplication.class, webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS, hierarchyMode = HierarchyMode.EXHAUSTIVE)
 @AutoConfigureMockMvc(printOnlyOnFailure = false)
 @AutoConfigureRestDocs(outputDir = "target/generated-snippets")
 public abstract class AbstractRegardsIT extends AbstractRegardsServiceIT {
@@ -172,6 +176,25 @@ public abstract class AbstractRegardsIT extends AbstractRegardsServiceIT {
     protected ResultActions performPut(String urlTemplate, String token, Object content,
             RequestBuilderCustomizer requestBuilderCustomizer, String errorMsg, Object... urlVariables) {
         return requestBuilderCustomizer.performPut(mvc, urlTemplate, token, content, errorMsg, urlVariables);
+    }
+
+    /**
+     * Allows to perform PATCH request with the security automatically handled
+     */
+    protected ResultActions performDefaultPatch(String urlTemplate, Object content,
+            RequestBuilderCustomizer requestBuilderCustomizer, String errorMsg, Object... urlVariables) {
+        return performPatch(urlTemplate,
+                            manageSecurity(getDefaultTenant(), urlTemplate, RequestMethod.PATCH, getDefaultUserEmail(),
+                                           getDefaultRole()),
+                            content, requestBuilderCustomizer, errorMsg, urlVariables);
+    }
+
+    /**
+     * Allows to perform PATCH request without the security automatically handled
+     */
+    protected ResultActions performPatch(String urlTemplate, String token, Object content,
+            RequestBuilderCustomizer requestBuilderCustomizer, String errorMsg, Object... urlVariables) {
+        return requestBuilderCustomizer.performPatch(mvc, urlTemplate, token, content, errorMsg, urlVariables);
     }
 
     /**

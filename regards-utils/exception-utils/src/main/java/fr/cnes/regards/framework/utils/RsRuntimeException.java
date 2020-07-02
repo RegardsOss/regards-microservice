@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -22,6 +22,7 @@ package fr.cnes.regards.framework.utils;
  * Specific Regards RuntimeException
  * @author oroussel
  */
+@SuppressWarnings("serial")
 public class RsRuntimeException extends RuntimeException {
 
     public RsRuntimeException(Throwable cause) {

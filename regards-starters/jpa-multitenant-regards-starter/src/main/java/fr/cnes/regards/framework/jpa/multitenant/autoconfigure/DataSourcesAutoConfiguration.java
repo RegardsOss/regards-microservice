@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -24,10 +24,13 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.persistence.Entity;
 import javax.sql.DataSource;
 
+import org.hibernate.HibernateException;
 import org.hibernate.boot.model.naming.ImplicitNamingStrategy;
 import org.hibernate.boot.model.naming.PhysicalNamingStrategy;
 import org.hibernate.cfg.Environment;
@@ -140,7 +143,7 @@ public class DataSourcesAutoConfiguration {
     @Bean(name = { DATA_SOURCE_BEAN_NAME })
     public Map<String, DataSource> getDataSources(ITenantConnectionResolver tenantConnectionResolver)
             throws JpaMultitenantException, EncryptionException {
-        Map<String, DataSource> datasources = new HashMap<>();
+        ConcurrentMap<String, DataSource> datasources = new ConcurrentHashMap<>();
         // Retrieve microservice tenant connections from multitenant resolver
         List<TenantConnection> connections = tenantConnectionResolver.getTenantConnections(microserviceName);
         // Initialize tenant connections
@@ -187,7 +190,7 @@ public class DataSourcesAutoConfiguration {
             @Qualifier(DATASOURCE_SCHEMA_HELPER_BEAN_NAME) IDatasourceSchemaHelper datasourceSchemaHelper,
             @Qualifier(DataSourcesAutoConfiguration.DATA_SOURCE_BEAN_NAME) Map<String, DataSource> dataSources) {
         return new MultitenantJpaEventHandler(microserviceName, dataSources, daoProperties, datasourceSchemaHelper,
-                instanceSubscriber, multitenantResolver, localPublisher(), encryptionService);
+                instanceSubscriber, multitenantResolver, localPublisher(), encryptionService, jpaProperties);
     }
 
     /**
@@ -212,8 +215,10 @@ public class DataSourcesAutoConfiguration {
             // Prevent duplicates
             if (!existingDataSources.containsKey(tenantConnection.getTenant())) {
                 try {
+                    // Retrieve schema name
+                    String schemaIdentifier = jpaProperties.getProperties().get(Environment.DEFAULT_SCHEMA);
                     // Init data source
-                    DataSource dataSource = TenantDataSourceHelper.initDataSource(daoProperties, tenantConnection);
+                    DataSource dataSource = TenantDataSourceHelper.initDataSource(daoProperties, tenantConnection, schemaIdentifier);
                     // Update database schema
                     datasourceSchemaHelper().migrate(dataSource);
                     // Register connection

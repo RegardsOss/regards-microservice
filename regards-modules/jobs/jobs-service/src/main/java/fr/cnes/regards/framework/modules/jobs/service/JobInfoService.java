@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -32,6 +32,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.ImmutableList;
+
 import fr.cnes.regards.framework.amqp.IPublisher;
 import fr.cnes.regards.framework.jpa.multitenant.transactional.MultitenantTransactional;
 import fr.cnes.regards.framework.modules.jobs.dao.IJobInfoRepository;
@@ -48,6 +49,8 @@ import fr.cnes.regards.framework.multitenant.ITenantResolver;
 @Service
 @MultitenantTransactional
 public class JobInfoService implements IJobInfoService {
+
+    public static final String SOME_FUNNY_MESSAGE = "Please use create method for creating, you dumb...";
 
     @Autowired
     private ITenantResolver tenantResolver;
@@ -102,7 +105,7 @@ public class JobInfoService implements IJobInfoService {
     @Override
     public JobInfo createAsPending(JobInfo jobInfo) {
         if (jobInfo.getId() != null) {
-            throw new IllegalArgumentException("Please use create method for creating, you dumb...");
+            throw new IllegalArgumentException(SOME_FUNNY_MESSAGE);
         }
         jobInfo.updateStatus(JobStatus.PENDING);
         return jobInfoRepository.save(jobInfo);
@@ -111,7 +114,7 @@ public class JobInfoService implements IJobInfoService {
     @Override
     public JobInfo createAsQueued(JobInfo jobInfo) {
         if (jobInfo.getId() != null) {
-            throw new IllegalArgumentException("Please use create method for creating, you dumb...");
+            throw new IllegalArgumentException(SOME_FUNNY_MESSAGE);
         }
         jobInfo.updateStatus(JobStatus.QUEUED);
         return jobInfoRepository.save(jobInfo);
@@ -120,9 +123,15 @@ public class JobInfoService implements IJobInfoService {
     @Override
     public JobInfo save(final JobInfo jobInfo) {
         if (jobInfo.getId() == null) {
-            throw new IllegalArgumentException("Please use create method for creating, you dumb...");
+            throw new IllegalArgumentException(SOME_FUNNY_MESSAGE);
         }
         return jobInfoRepository.save(jobInfo);
+    }
+
+    @Override
+    public JobInfo lock(JobInfo jobInfo) {
+        jobInfo.setLocked(true);
+        return save(jobInfo);
     }
 
     @Override
@@ -140,8 +149,8 @@ public class JobInfoService implements IJobInfoService {
     public void updateJobInfosCompletion(Iterable<JobInfo> jobInfos) {
         for (JobInfo jobInfo : jobInfos) {
             JobStatusInfo status = jobInfo.getStatus();
-            jobInfoRepository
-                    .updateCompletion(status.getPercentCompleted(), status.getEstimatedCompletion(), jobInfo.getId());
+            jobInfoRepository.updateCompletion(status.getPercentCompleted(), status.getEstimatedCompletion(),
+                                               jobInfo.getId());
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -78,7 +78,7 @@ public class PluginServiceFailedTest extends PluginServiceUtility {
         blowfishEncryptionService
                 .init(new CipherProperties(Paths.get("src", "test", "resources", "testKey"), "12345678"));
         pluginServiceMocked = new PluginService(pluginConfRepositoryMocked, Mockito.mock(IPublisher.class),
-                runtimeTenantResolver, blowfishEncryptionService);
+                runtimeTenantResolver, blowfishEncryptionService, null);
         PluginUtils.setup();
     }
 
@@ -88,9 +88,10 @@ public class PluginServiceFailedTest extends PluginServiceUtility {
      */
     @Test(expected = ModuleException.class)
     public void getAPluginConfigurationUnknown() throws ModuleException {
-        Mockito.when(pluginConfRepositoryMocked.findById(AN_ID)).thenReturn(Optional.empty());
+        String fakeBusinessId = "fakebid";
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(fakeBusinessId)).thenReturn(null);
 
-        PluginConfiguration plg = pluginServiceMocked.getPluginConfiguration(AN_ID);
+        PluginConfiguration plg = pluginServiceMocked.getPluginConfiguration(fakeBusinessId);
         Assert.assertNull(plg);
     }
 
@@ -100,9 +101,9 @@ public class PluginServiceFailedTest extends PluginServiceUtility {
      */
     @Test(expected = ModuleException.class)
     public void deleteAPluginConfigurationUnknown() throws ModuleException {
-        final Long aPluginId = 56789L;
-        Mockito.when(pluginConfRepositoryMocked.findById(aPluginId)).thenReturn(Optional.empty());
-        pluginServiceMocked.deletePluginConfiguration(aPluginId);
+        String fakeBusinessId = "fakebid";
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(fakeBusinessId)).thenReturn(null);
+        pluginServiceMocked.deletePluginConfiguration(fakeBusinessId);
         Assert.fail("There must be an exception thrown");
     }
 
@@ -202,7 +203,7 @@ public class PluginServiceFailedTest extends PluginServiceUtility {
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
         Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
 
         pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class);
@@ -249,14 +250,18 @@ public class PluginServiceFailedTest extends PluginServiceUtility {
     @Purpose("Unable to load a plugin with a no active configuration")
     public void getPluginNotActiveConfiguration() throws ModuleException, NotAvailablePluginConfigurationException {
 
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithoutParameters();
         aPluginConfiguration.setIsActive(Boolean.FALSE);
         aPluginConfiguration.setId(AN_ID);
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
 
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
 
-        pluginServiceMocked.getPlugin(AN_ID);
+        pluginServiceMocked.getPlugin(aPluginConfiguration.getBusinessId());
 
         Assert.fail();
     }

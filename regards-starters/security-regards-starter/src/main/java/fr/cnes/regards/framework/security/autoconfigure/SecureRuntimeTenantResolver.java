@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -35,7 +35,7 @@ public class SecureRuntimeTenantResolver implements IRuntimeTenantResolver {
     /**
      * Class logger
      */
-    private static final Logger LOGGER = LoggerFactory.getLogger(SecureRuntimeTenantResolver.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(SecureRuntimeTenantResolver.class);
 
     // Thread safe tenant holder for forced tenant
     private static final ThreadLocal<String> tenantHolder = new ThreadLocal<>();
@@ -43,7 +43,7 @@ public class SecureRuntimeTenantResolver implements IRuntimeTenantResolver {
     /**
      * The tenant
      */
-    private static final String TENANT = "tenant";
+    protected static final String TENANT = "tenant";
 
     /**
      * Name of the static and fixed name of instance virtual tenant.

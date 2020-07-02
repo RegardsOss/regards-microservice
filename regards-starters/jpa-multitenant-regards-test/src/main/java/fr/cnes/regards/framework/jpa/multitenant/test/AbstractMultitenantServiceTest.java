@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -22,9 +22,11 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.transaction.BeforeTransaction;
@@ -61,6 +63,17 @@ import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
  * <br/>
  * The test is launched enabling auto configuration and scanning all components inside
  * <code>fr.cnes.regards.modules</code> base package.
+ * <br/>
+ * <br/>
+ * To enable AMQP, first you have to add <code>regards.amqp.enabled=true</code> in {@link TestPropertySource}.
+ * <br/>
+ * <br/>
+ * And afterwards, you have to activate profile using {@link ActiveProfiles} as follows :
+ * <br/>
+ * <br/>
+ * <code>
+ * &#64;ActiveProfiles("testAmqp")
+ * </code>
  * @author Marc Sordi
  */
 @ContextConfiguration(classes = { AbstractMultitenantServiceTest.ScanningConfiguration.class })
@@ -92,4 +105,13 @@ public abstract class AbstractMultitenantServiceTest extends AbstractDaoTest {
     protected void simulateApplicationReadyEvent() {
         springPublisher.publishEvent(new ApplicationReadyEvent(Mockito.mock(SpringApplication.class), null, null));
     }
+
+    /**
+     * Useful class to simulate a Spring Boot {@link ApplicationStartedEvent}.<br/>
+     * <b>Warning : subscribers may manipulate tenant so call this method before all others.</b>
+     */
+    protected void simulateApplicationStartedEvent() {
+        springPublisher.publishEvent(new ApplicationStartedEvent(Mockito.mock(SpringApplication.class), null, null));
+    }
+
 }

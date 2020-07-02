@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -31,6 +31,16 @@ public class Syntax {
 
     private String name;
 
+    /**
+     * Height of the file (only for image files) in pixels
+     */
+    private Double height;
+
+    /**
+     * Width of the file (only for image files) in pixels
+     */
+    private Double width;
+
     public String getDescription() {
         return description;
     }
@@ -55,6 +65,22 @@ public class Syntax {
         name = pName;
     }
 
+    public Double getHeight() {
+        return height;
+    }
+
+    public void setHeight(Double height) {
+        this.height = height;
+    }
+
+    public Double getWidth() {
+        return width;
+    }
+
+    public void setWidth(Double width) {
+        this.width = width;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -62,6 +88,8 @@ public class Syntax {
         result = (prime * result) + ((description == null) ? 0 : description.hashCode());
         result = (prime * result) + ((mimeType == null) ? 0 : mimeType.hashCode());
         result = (prime * result) + ((name == null) ? 0 : name.hashCode());
+        result = (prime * result) + ((height == null) ? 0 : height.hashCode());
+        result = (prime * result) + ((width == null) ? 0 : width.hashCode());
         return result;
     }
 
@@ -93,8 +121,9 @@ public class Syntax {
         }
         if (name == null) {
             return other.name == null;
-        } else
+        } else {
             return name.equals(other.name);
+        }
     }
 
 }

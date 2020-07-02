@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -37,8 +37,9 @@ import fr.cnes.regards.framework.module.rest.exception.ModuleException;
 import fr.cnes.regards.framework.modules.plugins.dao.IPluginConfigurationRepository;
 import fr.cnes.regards.framework.modules.plugins.domain.PluginConfiguration;
 import fr.cnes.regards.framework.modules.plugins.domain.PluginMetaData;
+import fr.cnes.regards.framework.modules.plugins.domain.parameter.IPluginParam;
 import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
-import fr.cnes.regards.framework.utils.plugins.PluginParametersFactory;
+import fr.cnes.regards.framework.utils.plugins.PluginParameterTransformer;
 import fr.cnes.regards.framework.utils.plugins.PluginUtils;
 import fr.cnes.regards.framework.utils.plugins.exception.NotAvailablePluginConfigurationException;
 
@@ -70,18 +71,19 @@ public class ComplexPluginTest {
         BlowfishEncryptionService blowfishEncryptionService = new BlowfishEncryptionService();
         blowfishEncryptionService
                 .init(new CipherProperties(Paths.get("src", "test", "resources", "testKey"), "12345678"));
-        pluginServiceMocked = new PluginService(pluginConfRepositoryMocked, publisherMocked, runtimeTenantResolver,
-                blowfishEncryptionService);
+        pluginServiceMocked = new PluginService(pluginConfRepositoryMocked,
+                                                publisherMocked,
+                                                runtimeTenantResolver,
+                                                blowfishEncryptionService,
+                                                null);
         PluginUtils.setup();
     }
 
     @Test
     public void test() throws ModuleException, NotAvailablePluginConfigurationException {
-        PluginMetaData result = pluginServiceMocked.getPluginMetaDataById("complexPlugin");
+        PluginMetaData pluginMetaData = pluginServiceMocked.getPluginMetaDataById("complexPlugin");
 
         Long pPluginConfigurationId = 10L;
-
-        PluginParametersFactory ppf = PluginParametersFactory.build();
 
         TestPojo pojo = new TestPojo();
         TestPojo2 pojo2 = new TestPojo2();
@@ -89,22 +91,28 @@ public class ComplexPluginTest {
         pojo.setPojoParam("string_value");
         pojo.setOtherPojoParam(pojo2);
 
-        ppf.addDynamicParameter(TestPlugin.FIELD_NAME_POJO_PARAM, pojo);
-
         List<PluginConfiguration> pluginConfs = new ArrayList<>();
-        PluginConfiguration aPluginConfiguration = new PluginConfiguration(result,
-                "a configuration from PluginServiceUtility", ppf.getParameters(), 0);
+        PluginConfiguration aPluginConfiguration = new PluginConfiguration("a configuration from PluginServiceUtility",
+                                                                           IPluginParam.set(IPluginParam.build(
+                                                                                   TestPlugin.FIELD_NAME_POJO_PARAM,
+                                                                                   PluginParameterTransformer
+                                                                                           .toJson(pojo)).dynamic()),
+                                                                           0,
+                                                                           pluginMetaData.getPluginId());
+
         aPluginConfiguration.setId(pPluginConfigurationId);
+        aPluginConfiguration.setVersion(pluginMetaData.getVersion());
 
         pluginConfs.add(aPluginConfiguration);
 
         Mockito.when(pluginConfRepositoryMocked.findByPluginIdOrderByPriorityOrderDesc("complexPlugin"))
                 .thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
-        ITestPlugin plugin = pluginServiceMocked.getPlugin(pPluginConfigurationId);
+        ITestPlugin plugin = pluginServiceMocked.getPlugin(aPluginConfiguration.getBusinessId());
 
         Assert.assertEquals(plugin.getPojoParam().getPojoParam(), pojo.getPojoParam());
         Assert.assertEquals(plugin.getPojoParam().getOtherPojoParam().getIntValue(),

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -34,8 +34,9 @@ import fr.cnes.regards.framework.amqp.event.Target;
 @Event(target = Target.MICROSERVICE)
 public class BroadcastPluginConfEvent extends AbstractPluginConfEvent implements ISubscribable {
 
-    public BroadcastPluginConfEvent(Long pPluginConfId, PluginServiceAction pAction, Set<String> pPluginTypes) {
-        super(pPluginConfId, pAction, pPluginTypes);
+    public BroadcastPluginConfEvent(Long pPluginConfId, String pluginBusinnessId, String label,
+            PluginServiceAction pAction, Set<String> pPluginTypes) {
+        super(pPluginConfId, pluginBusinnessId, label, pAction, pPluginTypes);
     }
 
     public BroadcastPluginConfEvent() {

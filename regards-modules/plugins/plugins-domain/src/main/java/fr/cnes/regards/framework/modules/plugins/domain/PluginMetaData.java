@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -91,7 +91,7 @@ public class PluginMetaData implements Comparable<PluginMetaData> {
     /**
      * The parameters of the plugin
      */
-    private List<PluginParameterType> parameters = new ArrayList<>();
+    private List<PluginParamDescriptor> parameters = new ArrayList<>();
 
     /**
      * Constructor initializing a plugin metadata from a plugin annotation
@@ -230,14 +230,14 @@ public class PluginMetaData implements Comparable<PluginMetaData> {
     /**
      * @return the plugin parameter types
      */
-    public List<PluginParameterType> getParameters() {
+    public List<PluginParamDescriptor> getParameters() {
         return parameters;
     }
 
     /**
      * Set the plugin parameter types
      */
-    public void setParameters(List<PluginParameterType> parameters) {
+    public void setParameters(List<PluginParamDescriptor> parameters) {
         if (parameters == null) {
             this.parameters.clear();
         } else {

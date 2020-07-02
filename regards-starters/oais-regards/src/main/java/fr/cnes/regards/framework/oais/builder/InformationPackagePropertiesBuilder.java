@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -35,13 +35,17 @@ import com.google.common.collect.Maps;
 import fr.cnes.regards.framework.oais.ContentInformation;
 import fr.cnes.regards.framework.oais.Event;
 import fr.cnes.regards.framework.oais.InformationPackageProperties;
+import fr.cnes.regards.framework.oais.OAISDataObjectLocation;
 import fr.cnes.regards.framework.oais.PreservationDescriptionInformation;
 import fr.cnes.regards.framework.oais.urn.DataType;
 
 /**
  * Information package properties builder
  * @author Marc Sordi
+ *
+ * @deprecated {@link InformationPackageProperties} fluent API
  */
+@Deprecated
 public class InformationPackagePropertiesBuilder implements IOAISBuilder<InformationPackageProperties> {
 
     /**
@@ -65,11 +69,6 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
     private final Map<String, Object> descriptiveInformation;
 
     /**
-     * Descriptive information
-     */
-    private final Map<String, Object> miscInformation;
-
-    /**
      * Content information builder
      */
     private ContentInformationBuilder contentInformationBuilder;
@@ -83,7 +82,6 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
         this.contentInformationBuilder = new ContentInformationBuilder();
         this.pdiBuilder = new PDIBuilder();
         this.descriptiveInformation = Maps.newHashMap();
-        this.miscInformation = Maps.newHashMap();
     }
 
     /**
@@ -95,7 +93,6 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
         this.contentInformationBuilder = new ContentInformationBuilder();
         this.pdiBuilder = new PDIBuilder(properties.getPdi());
         this.descriptiveInformation = properties.getDescriptiveInformation();
-        this.miscInformation = properties.getMiscInformation();
     }
 
     @Override
@@ -103,7 +100,6 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
         addCis(cis);
         ip.setPdi(pdiBuilder.build());
         ip.getDescriptiveInformation().putAll(descriptiveInformation);
-        ip.getMiscInformation().putAll(miscInformation);
         return ip;
     }
 
@@ -129,12 +125,11 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
     }
 
     /**
-     * Add misc information to the information package thanks to the given parameters
+     * Add description information to the information package thanks to the given parameters which can be null
      */
-    public void addMiscInformation(String key, Object value) {
-        Assert.hasLength(key, "Misc information key is required");
-        Assert.notNull(value, "Misc information value is required");
-        miscInformation.put(key, value);
+    public void addNullDescriptiveInformation(String key, Object value) {
+        Assert.hasLength(key, "Descriptive information key is required");
+        descriptiveInformation.put(key, value);
     }
 
     /**
@@ -142,7 +137,7 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
      */
     public void addDescriptiveInformation(String key, Object value) {
         Assert.hasLength(key, "Descriptive information key is required");
-        Assert.notNull(value, "Descriptive information value is required");
+        Assert.notNull(value, String.format("The value of the descriptive information [%s] is null", key));
         descriptiveInformation.put(key, value);
     }
 
@@ -165,6 +160,14 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
      */
     public void addTags(String... tags) {
         pdiBuilder.addTags(tags);
+    }
+
+    /**
+     * Add categories to context information (repeatable)
+     * @param categories list of category
+     */
+    public void addContextCategories(String... categories) {
+        pdiBuilder.addContextCategories(categories);
     }
 
     /**
@@ -280,9 +283,11 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
      * @param dataType {@link DataType}
      * @param filename filename
      * @param url external url
+     * @param storage storage identifier not managed by storage service (to just reference the file and avoid manipulating it).
+     * An arbitrary character string may be appropriate!
      */
-    public void setDataObjectReference(DataType dataType, String filename, URL url) {
-        contentInformationBuilder.setDataObjectReference(dataType, filename, url);
+    public void setDataObjectReference(DataType dataType, String filename, String url, String storage) {
+        contentInformationBuilder.setDataObjectReference(dataType, filename, url, storage);
     }
 
     /**
@@ -292,11 +297,11 @@ public class InformationPackagePropertiesBuilder implements IOAISBuilder<Informa
      * @param algorithm checksum algorithm
      * @param checksum the checksum
      * @param fileSize <b>optional</b> file size
-     * @param urls references to the physical file
+     * @param locations references to the physical file. Use {@link OAISDataObjectLocation} build methods to create location!
      */
     public void setDataObject(DataType dataType, String filename, String algorithm, String checksum, Long fileSize,
-            URL... urls) {
-        contentInformationBuilder.setDataObject(dataType, filename, algorithm, checksum, fileSize, urls);
+            OAISDataObjectLocation... locations) {
+        contentInformationBuilder.setDataObject(dataType, filename, algorithm, checksum, fileSize, locations);
     }
 
     /**

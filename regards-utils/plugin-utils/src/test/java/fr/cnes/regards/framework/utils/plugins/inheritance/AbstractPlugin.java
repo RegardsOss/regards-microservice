@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -39,5 +39,9 @@ public abstract class AbstractPlugin implements IBasicPlugin {
     @PluginInit
     protected void init() {
         LOGGER.info("Init the plugin in an inherited class"); // Just for manual test!
+    }
+
+    public String getInheritedField() {
+        return inheritedField;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -55,6 +55,12 @@ public interface IJobInfoService {
      * @return the updated jobInfo
      */
     JobInfo save(JobInfo jobInfo);
+
+    /**
+     * Lock job info, cannot be candidate for cleaning
+     * @return the update job info
+     */
+    JobInfo lock(JobInfo jobInfo);
 
     /**
      * Unlock job info, make it candidate for cleaning

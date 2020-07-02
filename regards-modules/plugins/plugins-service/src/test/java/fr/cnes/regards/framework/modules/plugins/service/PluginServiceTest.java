@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2019 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ * Copyright 2017-2020 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of REGARDS.
  *
@@ -26,7 +26,6 @@ import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import org.junit.Assert;
@@ -47,13 +46,12 @@ import fr.cnes.regards.framework.modules.plugins.SamplePlugin;
 import fr.cnes.regards.framework.modules.plugins.dao.IPluginConfigurationRepository;
 import fr.cnes.regards.framework.modules.plugins.domain.PluginConfiguration;
 import fr.cnes.regards.framework.modules.plugins.domain.PluginMetaData;
-import fr.cnes.regards.framework.modules.plugins.domain.PluginParameter;
 import fr.cnes.regards.framework.modules.plugins.domain.event.BroadcastPluginConfEvent;
 import fr.cnes.regards.framework.modules.plugins.domain.event.PluginServiceAction;
+import fr.cnes.regards.framework.modules.plugins.domain.parameter.IPluginParam;
 import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 import fr.cnes.regards.framework.test.report.annotation.Purpose;
 import fr.cnes.regards.framework.test.report.annotation.Requirement;
-import fr.cnes.regards.framework.utils.plugins.PluginParametersFactory;
 import fr.cnes.regards.framework.utils.plugins.PluginUtils;
 import fr.cnes.regards.framework.utils.plugins.exception.NotAvailablePluginConfigurationException;
 
@@ -84,6 +82,7 @@ public class PluginServiceTest extends PluginServiceUtility {
     public void init() throws InvalidAlgorithmParameterException, InvalidKeyException, IOException {
         runtimeTenantResolver = Mockito.mock(IRuntimeTenantResolver.class);
         Mockito.when(runtimeTenantResolver.getTenant()).thenReturn("tenant");
+        PluginUtils.setup();
 
         publisherMocked = Mockito.mock(IPublisher.class);
         // create a mock repository
@@ -92,7 +91,7 @@ public class PluginServiceTest extends PluginServiceUtility {
         blowfishEncryptionService
                 .init(new CipherProperties(Paths.get("src", "test", "resources", "testKey"), "12345678"));
         pluginServiceMocked = new PluginService(pluginConfRepositoryMocked, publisherMocked, runtimeTenantResolver,
-                blowfishEncryptionService);
+                blowfishEncryptionService, null);
         PluginUtils.setup(Arrays.asList("fr.cnes.regards.plugins", "fr.cnes.regards.framework.plugins",
                                         "fr.cnes.regards.framework.modules.plugins"));
     }
@@ -164,12 +163,14 @@ public class PluginServiceTest extends PluginServiceUtility {
         try {
             final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
             aPluginConfiguration.setId(AN_ID);
-            Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+            Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                     .thenReturn(aPluginConfiguration);
+            Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                    .thenReturn(true);
             Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
 
             PluginConfiguration aConf;
-            aConf = pluginServiceMocked.getPluginConfiguration(aPluginConfiguration.getId());
+            aConf = pluginServiceMocked.getPluginConfiguration(aPluginConfiguration.getBusinessId());
             Assert.assertEquals(aConf.getLabel(), aPluginConfiguration.getLabel());
         } catch (ModuleException e) {
             Assert.fail();
@@ -186,16 +187,26 @@ public class PluginServiceTest extends PluginServiceUtility {
         try {
             final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
             aPluginConfiguration.setId(AN_ID);
-            Mockito.when(pluginConfRepositoryMocked.findById(aPluginConfiguration.getId()))
-                    .thenReturn(Optional.of(aPluginConfiguration));
-            pluginServiceMocked.deletePluginConfiguration(aPluginConfiguration.getId());
+            //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+            aPluginConfiguration.setMetaData(PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID));
+            Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
+                    .thenReturn(aPluginConfiguration);
+            pluginServiceMocked.deletePluginConfiguration(aPluginConfiguration.getBusinessId());
             Mockito.verify(pluginConfRepositoryMocked).deleteById(aPluginConfiguration.getId());
-            Mockito.verify(publisherMocked).publish(new BroadcastPluginConfEvent(aPluginConfiguration.getId(),
-                    PluginServiceAction.DELETE, aPluginConfiguration.getInterfaceNames()));
+            Mockito.verify(publisherMocked)
+                    .publish(new BroadcastPluginConfEvent(aPluginConfiguration.getId(),
+                            aPluginConfiguration.getBusinessId(), aPluginConfiguration.getLabel(),
+                            PluginServiceAction.DELETE, aPluginConfiguration.getInterfaceNames()));
 
         } catch (final ModuleException e) {
             Assert.fail();
         }
+    }
+
+    private PluginConfiguration clone(PluginConfiguration source) {
+        PluginConfiguration conf = new PluginConfiguration(source.getLabel(), source.getParameters(),
+                source.getPriorityOrder(), source.getPluginId());
+        return conf;
     }
 
     /**
@@ -207,8 +218,10 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Purpose("Create a new plugin configuration")
     public void saveAPluginConfiguration() {
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
-        final PluginConfiguration aPluginConfigurationWithId = new PluginConfiguration(aPluginConfiguration);
+        final PluginConfiguration aPluginConfigurationWithId = clone(aPluginConfiguration);
         aPluginConfigurationWithId.setId(AN_ID);
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        aPluginConfigurationWithId.setMetaData(PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID));
         try {
             Mockito.when(pluginConfRepositoryMocked.save(aPluginConfiguration)).thenReturn(aPluginConfigurationWithId);
 
@@ -221,18 +234,51 @@ public class PluginServiceTest extends PluginServiceUtility {
             Assert.assertEquals(aPluginConfiguration.getParameters().size(),
                                 savedPluginConfiguration.getParameters().size());
 
-            Mockito.verify(publisherMocked).publish(new BroadcastPluginConfEvent(aPluginConfigurationWithId.getId(),
-                    PluginServiceAction.CREATE, aPluginConfigurationWithId.getInterfaceNames()));
+            Mockito.verify(publisherMocked)
+                    .publish(new BroadcastPluginConfEvent(aPluginConfigurationWithId.getId(),
+                            aPluginConfigurationWithId.getBusinessId(), aPluginConfigurationWithId.getLabel(),
+                            PluginServiceAction.CREATE, aPluginConfigurationWithId.getInterfaceNames()));
         } catch (final ModuleException e) {
             Assert.fail();
         }
     }
 
     @Test(expected = ModuleException.class)
+    public void saveTwoPluginConfigurationWithSameBusinessId() throws ModuleException {
+        final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
+        final PluginConfiguration aPluginConfigurationWithId = clone(aPluginConfiguration);
+        aPluginConfigurationWithId.setBusinessId(aPluginConfiguration.getBusinessId());
+        aPluginConfigurationWithId.setId(AN_ID);
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        aPluginConfigurationWithId.setMetaData(PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID));
+
+        final PluginConfiguration theSamePluginConfiguration = getPluginConfigurationWithParameters();
+        theSamePluginConfiguration.setBusinessId(aPluginConfiguration.getBusinessId());
+
+        // save a first plugin configuration
+        Mockito.when(pluginConfRepositoryMocked.save(aPluginConfiguration)).thenReturn(aPluginConfigurationWithId);
+        try {
+            pluginServiceMocked.savePluginConfiguration(aPluginConfiguration);
+        } catch (ModuleException e) {
+            Assert.fail();
+        }
+
+        // save a second plugin configuration with the same businessId
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfigurationWithId.getBusinessId()))
+                .thenReturn(aPluginConfigurationWithId);
+        pluginServiceMocked.savePluginConfiguration(theSamePluginConfiguration);
+
+        // An exception is throw, otherwise the test is failed
+        Assert.fail();
+    }
+
+    @Test
     public void saveTwoPluginConfigurationWithSameLabel() throws ModuleException {
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
-        final PluginConfiguration aPluginConfigurationWithId = new PluginConfiguration(aPluginConfiguration);
+        final PluginConfiguration aPluginConfigurationWithId = clone(aPluginConfiguration);
         aPluginConfigurationWithId.setId(AN_ID);
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        aPluginConfigurationWithId.setMetaData(PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID));
 
         final PluginConfiguration theSamePluginConfiguration = getPluginConfigurationWithParameters();
 
@@ -245,12 +291,7 @@ public class PluginServiceTest extends PluginServiceUtility {
         }
 
         // save a second plugin configuration with the same label
-        Mockito.when(pluginConfRepositoryMocked.findOneByLabel(theSamePluginConfiguration.getLabel()))
-                .thenReturn(aPluginConfigurationWithId);
         pluginServiceMocked.savePluginConfiguration(theSamePluginConfiguration);
-
-        // An exception is throw, otherwise the test is failed
-        Assert.fail();
     }
 
     /**
@@ -263,7 +304,7 @@ public class PluginServiceTest extends PluginServiceUtility {
     public void updateAPluginConfiguration() throws ModuleException {
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
         aPluginConfiguration.setId(AN_ID);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
         Mockito.when(pluginConfRepositoryMocked.save(aPluginConfiguration)).thenReturn(aPluginConfiguration);
 
@@ -277,19 +318,27 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Requirement("REGARDS_DSL_CMP_PLG_100")
     @Purpose("Update a plugin configuration identified by an identifier by deactivating it")
     public void deactivateAPluginConfiguration() throws ModuleException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
         aPluginConfiguration.setId(AN_ID);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        PluginConfiguration toBeUpdated = new PluginConfiguration(aPluginConfiguration);
+        PluginConfiguration toBeUpdated = clone(aPluginConfiguration);
         toBeUpdated.setIsActive(false);
+        toBeUpdated.setBusinessId(aPluginConfiguration.getBusinessId());
+        toBeUpdated.setId(AN_ID);
         Mockito.when(pluginConfRepositoryMocked.save(toBeUpdated)).thenReturn(toBeUpdated);
 
         final PluginConfiguration updatedConf = pluginServiceMocked.updatePluginConfiguration(toBeUpdated);
         Assert.assertEquals(updatedConf.getLabel(), aPluginConfiguration.getLabel());
         Assert.assertEquals(updatedConf.getPluginId(), aPluginConfiguration.getPluginId());
-        Mockito.verify(publisherMocked).publish(new BroadcastPluginConfEvent(aPluginConfiguration.getId(),
-                PluginServiceAction.DISABLE, aPluginConfiguration.getInterfaceNames()));
+        Mockito.verify(publisherMocked)
+                .publish(new BroadcastPluginConfEvent(aPluginConfiguration.getId(),
+                        aPluginConfiguration.getBusinessId(), aPluginConfiguration.getLabel(),
+                        PluginServiceAction.DISABLE, aPluginConfiguration.getInterfaceNames()));
     }
 
     @Test
@@ -297,20 +346,30 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Requirement("REGARDS_DSL_CMP_PLG_100")
     @Purpose("Update a plugin configuration identified by an identifier by activating it")
     public void activateAPluginConfiguration() throws ModuleException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
         aPluginConfiguration.setId(AN_ID);
         aPluginConfiguration.setIsActive(false);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        PluginConfiguration toBeUpdated = new PluginConfiguration(aPluginConfiguration);
+        PluginConfiguration toBeUpdated = clone(aPluginConfiguration);
+        toBeUpdated.setBusinessId(aPluginConfiguration.getBusinessId());
         toBeUpdated.setIsActive(true);
+        toBeUpdated.setId(AN_ID);
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        toBeUpdated.setMetaData(PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID));
         Mockito.when(pluginConfRepositoryMocked.save(toBeUpdated)).thenReturn(toBeUpdated);
 
         final PluginConfiguration updatedConf = pluginServiceMocked.updatePluginConfiguration(toBeUpdated);
         Assert.assertEquals(updatedConf.getLabel(), aPluginConfiguration.getLabel());
         Assert.assertEquals(updatedConf.getPluginId(), aPluginConfiguration.getPluginId());
-        Mockito.verify(publisherMocked).publish(new BroadcastPluginConfEvent(aPluginConfiguration.getId(),
-                PluginServiceAction.ACTIVATE, aPluginConfiguration.getInterfaceNames()));
+        Mockito.verify(publisherMocked)
+                .publish(new BroadcastPluginConfEvent(aPluginConfiguration.getId(),
+                        aPluginConfiguration.getBusinessId(), aPluginConfiguration.getLabel(),
+                        PluginServiceAction.ACTIVATE, aPluginConfiguration.getInterfaceNames()));
     }
 
     @Test
@@ -371,17 +430,22 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Requirement("REGARDS_DSL_SYS_ARC_120")
     @Purpose("Load a plugin from a specific type with a configuration and execute a method.")
     public void getFirstPluginInstanceByType() throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
         aPluginConfiguration.setId(AN_ID);
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
 
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(getPluginConfigurationWithDynamicParameter());
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class);
 
@@ -395,20 +459,24 @@ public class PluginServiceTest extends PluginServiceUtility {
 
     @Test
     public void getAPluginInstance() throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
         aPluginConfiguration.setId(AN_ID);
-
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(getPluginConfigurationWithDynamicParameter());
 
         Mockito.when(pluginConfRepositoryMocked.findByPluginIdOrderByPriorityOrderDesc(PLUGIN_PARAMETER_ID))
                 .thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
-        final SamplePlugin aSamplePlugin = pluginServiceMocked.getPlugin(aPluginConfiguration.getId());
+        final SamplePlugin aSamplePlugin = pluginServiceMocked.getPlugin(aPluginConfiguration.getBusinessId());
 
         Assert.assertNotNull(aSamplePlugin);
 
@@ -427,17 +495,22 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Purpose("Load twice a plugin with the same configuration.")
     public void getExistingFirstPluginInstanceByType()
             throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
         aPluginConfiguration.setId(AN_ID);
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
 
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(getPluginConfigurationWithDynamicParameter());
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class);
         Assert.assertNotNull(aSamplePlugin);
@@ -460,21 +533,29 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Purpose("Load a plugin twice from a specific type with a configuration.")
     public void getExistingFirstPluginInstanceByTypeWithDynamicParameter()
             throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithDynamicParameter();
         aPluginConfiguration.setId(AN_ID);
-
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
         pluginConfs.add(aPluginConfiguration);
-        pluginConfs.add(getPluginConfigurationWithParameters());
+
+        PluginConfiguration conf2 = getPluginConfigurationWithParameters();
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        conf2.setMetaData(metaData);
+        conf2.setVersion(metaData.getVersion());
+        pluginConfs.add(conf2);
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
         // the argument for the dynamic parameter
-        final PluginParameter aDynamicPlgParam = PluginParametersFactory.build()
-                .addDynamicParameter(SamplePlugin.FIELD_NAME_SUFFIX, BLUE).getParameters().stream().findFirst().get();
+        IPluginParam aDynamicPlgParam = IPluginParam.build(SamplePlugin.FIELD_NAME_SUFFIX, BLUE).dynamic();
 
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class,
                                                                                     aDynamicPlgParam);
@@ -495,21 +576,24 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Purpose("Load a plugin twice from a specific type with a configuration.")
     public void getExistingFirstPluginInstanceByTypeWithDynamicParameter2()
             throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithDynamicParameter();
         aPluginConfiguration.setId(AN_ID);
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
 
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(getPluginConfigurationWithParameters());
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
         Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
 
         // the argument for the dynamic parameter
-        final PluginParameter aDynamicPlgParam = PluginParametersFactory.build()
-                .addDynamicParameter(SamplePlugin.FIELD_NAME_SUFFIX, BLUE).getParameters().stream().findFirst().get();
+        IPluginParam aDynamicPlgParam = IPluginParam.build(SamplePlugin.FIELD_NAME_SUFFIX, BLUE).dynamic();
 
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class);
         Assert.assertNotNull(aSamplePlugin);
@@ -534,21 +618,24 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Purpose("Load a plugin with a dynamic parameter from a specific type with a configuration and execute a method.")
     public void getFirstPluginInstanceByTypeWithADynamicParameter()
             throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithParameters();
         aPluginConfiguration.setId(AN_ID);
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
 
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(getPluginConfigurationWithDynamicParameter());
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
         Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
 
         // the argument for the dynamic parameter
-        final PluginParameter aDynamicPlgParam = PluginParametersFactory.build()
-                .addDynamicParameter(SamplePlugin.FIELD_NAME_COEF, -1).getParameters().stream().findFirst().get();
+        IPluginParam aDynamicPlgParam = IPluginParam.build(SamplePlugin.FIELD_NAME_COEF, -1).dynamic();
 
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class,
                                                                                     aDynamicPlgParam);
@@ -575,17 +662,21 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Purpose("Load a plugin with a dynamic parameter with a list of value from a specific type with a configuration and execute a method.")
     public void getFirstPluginInstanceByTypeWithADynamicParameterWithAListOfValue()
             throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithDynamicParameter();
         aPluginConfiguration.setId(AN_ID);
-
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(getPluginConfigurationWithParameters());
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class);
 
@@ -605,22 +696,24 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Purpose("Load a plugin with a dynamic parameter with a list of value from a specific type with a configuration and set a parameter value and execute a method.")
     public void getFirstPluginInstanceByTypeWithADynamicParameterWithAListOfValueAndSetAValue()
             throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithDynamicParameter();
         aPluginConfiguration.setId(AN_ID);
-
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(getPluginConfigurationWithParameters());
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
         // the argument for the dynamic parameter
-        final PluginParameter aDynamicPlgParam = PluginParametersFactory.build()
-                .addDynamicParameter(SamplePlugin.FIELD_NAME_SUFFIX, BLUE).getParameters().stream().findFirst().get();
-
+        IPluginParam aDynamicPlgParam = IPluginParam.build(SamplePlugin.FIELD_NAME_SUFFIX, BLUE).dynamic();
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class,
                                                                                     aDynamicPlgParam);
 
@@ -645,9 +738,10 @@ public class PluginServiceTest extends PluginServiceUtility {
         pluginConfs.add(getPluginConfigurationWithParameters());
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
         pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class);
     }
@@ -660,24 +754,31 @@ public class PluginServiceTest extends PluginServiceUtility {
     @Test
     public void getFirstPluginInstanceTheMostPrioritary()
             throws ModuleException, NotAvailablePluginConfigurationException {
+        //need to directly call PluginUtils.getPlugins.get(pluginId) to set metadata because of mockito
+        PluginMetaData metaData = PluginUtils.getPluginMetadata(A_SAMPLE_PLUGIN_PLUGIN_ID);
         final List<PluginConfiguration> pluginConfs = new ArrayList<>();
 
         final PluginConfiguration aPluginConfiguration = getPluginConfigurationWithDynamicParameter();
         // this conf is the most priority
         aPluginConfiguration.setPriorityOrder(1);
         aPluginConfiguration.setId(AN_ID);
+        aPluginConfiguration.setMetaData(metaData);
+        aPluginConfiguration.setVersion(metaData.getVersion());
 
         final PluginConfiguration bPluginConfiguration = getPluginConfigurationWithParameters();
         bPluginConfiguration.setPriorityOrder(2);
         bPluginConfiguration.setId(1 + AN_ID);
+        bPluginConfiguration.setMetaData(metaData);
+        bPluginConfiguration.setVersion(metaData.getVersion());
 
         pluginConfs.add(aPluginConfiguration);
         pluginConfs.add(bPluginConfiguration);
 
         Mockito.when(pluginConfRepositoryMocked.findAll()).thenReturn(pluginConfs);
-        Mockito.when(pluginConfRepositoryMocked.findCompleteById(aPluginConfiguration.getId()))
+        Mockito.when(pluginConfRepositoryMocked.findCompleteByBusinessId(aPluginConfiguration.getBusinessId()))
                 .thenReturn(aPluginConfiguration);
-        Mockito.when(pluginConfRepositoryMocked.existsById(aPluginConfiguration.getId())).thenReturn(true);
+        Mockito.when(pluginConfRepositoryMocked.existsByBusinessId(aPluginConfiguration.getBusinessId()))
+                .thenReturn(true);
 
         final SamplePlugin aSamplePlugin = pluginServiceMocked.getFirstPluginByType(ISamplePlugin.class);
 
