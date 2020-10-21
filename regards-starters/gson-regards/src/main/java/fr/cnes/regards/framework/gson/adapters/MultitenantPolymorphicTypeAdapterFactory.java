@@ -182,8 +182,8 @@ public class MultitenantPolymorphicTypeAdapterFactory<E> implements TypeAdapterF
         // Retrieve tenant map
         Map<String, Class<?>> tenantDiscriminatorToSubtype = getTenantDiscriminatorToSubtype(tenant);
         // Check if map not already contains value with a different mapping
-        if (tenantDiscriminatorToSubtype.containsKey(discriminatorFieldValue) && (type != tenantDiscriminatorToSubtype
-                .get(discriminatorFieldValue))) {
+        if (tenantDiscriminatorToSubtype.containsKey(discriminatorFieldValue)
+                && (type != tenantDiscriminatorToSubtype.get(discriminatorFieldValue))) {
 
             final String errorMessage = String
                     .format("Discrimator field value %s must be unique", discriminatorFieldValue);
@@ -503,7 +503,8 @@ public class MultitenantPolymorphicTypeAdapterFactory<E> implements TypeAdapterF
                     return delegate.fromJsonTree(beforeRead(jsonElement, discriminator, getTenantDiscriminatorToSubtype(
                             runtimeTenantResolver.getTenant()).get(discriminator)));
                 } catch (JsonIOException e) {
-                    String errorMessage = String.format("Unexpected JSON format (%s)", jsonElement.toString());
+                    String errorMessage = String.format("Unexpected JSON format (%s) for property %s",
+                                                        jsonElement.toString(), discriminator);
                     LOGGER.error(errorMessage, e);
                     throw new JsonParseException(errorMessage);
                 }

@@ -135,8 +135,7 @@ public class JobInfo {
     /**
      * Default constructor only used by Hb9
      */
-    @SuppressWarnings("unused")
-    private JobInfo() {
+    public JobInfo() {
         super();
     }
 

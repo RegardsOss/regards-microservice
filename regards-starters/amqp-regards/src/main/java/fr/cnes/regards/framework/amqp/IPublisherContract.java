@@ -18,6 +18,12 @@
  */
 package fr.cnes.regards.framework.amqp;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import org.springframework.boot.actuate.health.Health.Builder;
+
 import fr.cnes.regards.framework.amqp.event.IPollable;
 import fr.cnes.regards.framework.amqp.event.ISubscribable;
 
@@ -28,6 +34,11 @@ import fr.cnes.regards.framework.amqp.event.ISubscribable;
  * @author Marc Sordi
  */
 public interface IPublisherContract {
+
+    /**
+     * Return an indication of health.
+     */
+    void health(Builder builder);
 
     /**
      * Publish an {@link ISubscribable} event

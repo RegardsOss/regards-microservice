@@ -15,11 +15,11 @@
     <artifactId>security-regards</artifactId>
     <description>REGARDS Security</description>
 
-    <parent>
-        <groupId>fr.cnes.regards.framework</groupId>
-        <artifactId>regards-starters</artifactId>
-        <version>1.0.1</version>
-    </parent>
+	<parent>
+		<groupId>fr.cnes.regards.framework</groupId>
+		<artifactId>regards-starters</artifactId>
+		<version>1.2.1</version>
+	</parent>
 
     <url>https://github.com/RegardsOss/RegardsOss.github.io</url>
     <inceptionYear>2016</inceptionYear>

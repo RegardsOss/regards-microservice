@@ -45,6 +45,11 @@ public class JsonMessageConverters implements MessageConverter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JsonMessageConverters.class);
 
+    /**
+     * Use {@link AmqpConstants#REGARDS_CONVERTER_HEADER} instead.
+     * Will be remove in V1.3
+     */
+    @Deprecated
     private static final String CONVERTER_TYPE_HEADER = "__ctype__";
 
     /**
@@ -67,7 +72,38 @@ public class JsonMessageConverters implements MessageConverter {
 
     @Override
     public Object fromMessage(Message message) throws MessageConversionException {
-        return selectConverter(message.getMessageProperties()).fromMessage(message);
+
+        MessageProperties messageProperties = message.getMessageProperties();
+        if (messageProperties == null) {
+            String errorMessage = "Missing message properties";
+            LOGGER.error(errorMessage);
+            throw new MessageConversionException(errorMessage);
+        }
+
+        String tenant = messageProperties.getHeader(AmqpConstants.REGARDS_TENANT_HEADER);
+        String runtimeTenant = runtimeTenantResolver.getTenant();
+
+        // Check if tenant already set and match!
+        if ((tenant != null) && (runtimeTenant != null) && !runtimeTenant.equals(tenant)) {
+            String errorMessage = String
+                    .format("Inconsistent tenant resolution : runtime tenant \"%s\" does not match with message one : \"%s\"",
+                            runtimeTenant, tenant);
+            LOGGER.warn(errorMessage);
+            // FIXME
+            // throw new MessageConversionException(errorMessage);
+            // Manage tenant before calling handler to properly force and clean tenant.
+        }
+
+        try {
+            if ((tenant != null) && (runtimeTenant == null)) {
+                runtimeTenantResolver.forceTenant(tenant);
+            }
+            return selectConverter(message.getMessageProperties()).fromMessage(message);
+        } finally {
+            if ((tenant != null) && (runtimeTenant == null)) {
+                runtimeTenantResolver.clearTenant();
+            }
+        }
     }
 
     public void registerConverter(JsonMessageConverter converterType, MessageConverter converter) {

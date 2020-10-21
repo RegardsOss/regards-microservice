@@ -16,12 +16,12 @@
     <packaging>maven-plugin</packaging>
     <description>Maven plugin to aggregate all requirement reports</description>
 
-    <parent>
-        <groupId>fr.cnes.regards</groupId>
-        <artifactId>regards-parent</artifactId>
-        <version>1.0.1</version>
-        <relativePath/>
-    </parent>
+	<parent>
+		<groupId>fr.cnes.regards</groupId>
+		<artifactId>regards-parent</artifactId>
+		<version>1.2.1</version>
+		<relativePath />
+	</parent>
 
     <url>https://github.com/RegardsOss/RegardsOss.github.io</url>
     <inceptionYear>2016</inceptionYear>
