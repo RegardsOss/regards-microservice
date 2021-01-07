@@ -19,7 +19,6 @@
 package fr.cnes.regards.framework.amqp.converter;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Type;
@@ -76,6 +75,10 @@ public class Gson2JsonMessageConverter extends AbstractMessageConverter {
         messageProperties.setContentType(MessageProperties.CONTENT_TYPE_JSON);
         messageProperties.setContentEncoding(DEFAULT_CHARSET);
         messageProperties.setContentLength(bytes.length);
+        // Add wrapped type information for Gson deserialization if not already set
+        if (!messageProperties.getHeaders().containsKey(AmqpConstants.REGARDS_TYPE_HEADER)) {
+            messageProperties.setHeader(AmqpConstants.REGARDS_TYPE_HEADER, object.getClass().getName());
+        }
         return new Message(bytes, messageProperties);
     }
 
@@ -93,12 +96,36 @@ public class Gson2JsonMessageConverter extends AbstractMessageConverter {
                 throw new MessageConversionException(errorMessage, e);
             }
         } else {
-            LOGGER.warn("Could not convert incoming message");
+            String errorMessage = String.format(CONVERSION_ERROR, "no message properties");
+            LOGGER.error(errorMessage);
+            throw new MessageConversionException(errorMessage);
         }
         if (content == null) {
             content = message.getBody();
         }
         return content;
+    }
+
+    private static Type createTypeToken(Message message) throws MessageConversionException {
+        try {
+            Object typeHeader = message.getMessageProperties().getHeader(AmqpConstants.REGARDS_TYPE_HEADER);
+            if (typeHeader == null) {
+                // Compatibility
+                typeHeader = message.getMessageProperties().getHeader(WRAPPED_TYPE_HEADER);
+            }
+            Class<?> eventType = Class.forName((String) typeHeader);
+            if (RabbitVersion.isVersion1_1(message)) {
+                return TypeToken.of(eventType).getType();
+            } else if (RabbitVersion.isVersion1(message)) {
+                return createTypeToken(eventType).getType();
+            } else {
+                throw new MessageConversionException("Unknown message api version");
+            }
+        } catch (ClassNotFoundException e) {
+            String errorMessage = String.format(CONVERSION_ERROR, "JAVA event type no found");
+            LOGGER.error(errorMessage, e);
+            throw new MessageConversionException("Cannot convert incoming message", e);
+        }
     }
 
     @SuppressWarnings("serial")

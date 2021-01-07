@@ -185,8 +185,8 @@ public class MultitenantPolymorphicTypeAdapterFactory<E> implements TypeAdapterF
         if (tenantDiscriminatorToSubtype.containsKey(discriminatorFieldValue)
                 && (type != tenantDiscriminatorToSubtype.get(discriminatorFieldValue))) {
 
-            final String errorMessage = String
-                    .format("Discrimator field value %s must be unique", discriminatorFieldValue);
+            final String errorMessage = String.format("Discrimator field value %s must be unique",
+                                                      discriminatorFieldValue);
             LOGGER.error(errorMessage);
             throw new IllegalArgumentException(errorMessage);
         }
@@ -449,7 +449,9 @@ public class MultitenantPolymorphicTypeAdapterFactory<E> implements TypeAdapterF
 
                 // Raw JSON object
                 JsonElement rawJson = delegate.toJsonTree(value);
+                out.setSerializeNulls(true);
                 Streams.write(beforeWrite(rawJson, srcType), out);
+                out.setSerializeNulls(false);
             }
 
             @SuppressWarnings("unchecked")
@@ -500,8 +502,10 @@ public class MultitenantPolymorphicTypeAdapterFactory<E> implements TypeAdapterF
                 }
 
                 try {
-                    return delegate.fromJsonTree(beforeRead(jsonElement, discriminator, getTenantDiscriminatorToSubtype(
-                            runtimeTenantResolver.getTenant()).get(discriminator)));
+                    return delegate
+                            .fromJsonTree(beforeRead(jsonElement, discriminator,
+                                                     getTenantDiscriminatorToSubtype(runtimeTenantResolver.getTenant())
+                                                             .get(discriminator)));
                 } catch (JsonIOException e) {
                     String errorMessage = String.format("Unexpected JSON format (%s) for property %s",
                                                         jsonElement.toString(), discriminator);

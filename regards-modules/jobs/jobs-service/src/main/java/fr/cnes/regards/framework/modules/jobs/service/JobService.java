@@ -5,9 +5,12 @@ import javax.annotation.PreDestroy;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -268,6 +271,7 @@ public class JobService implements IJobService {
             // First, instantiate job
             @SuppressWarnings("rawtypes") IJob job = (IJob) Class.forName(jobInfo.getClassName()).newInstance();
             beanFactory.autowireBean(job);
+            job.setJobInfoId(jobInfo.getId());
             job.setParameters(jobInfo.getParametersAsMap());
             if (job.needWorkspace()) {
                 job.setWorkspace(workspaceService::getPrivateDirectory);

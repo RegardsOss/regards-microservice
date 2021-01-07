@@ -169,6 +169,11 @@ public class JobInfoService implements IJobInfoService, ApplicationContextAware 
     }
 
     @Override
+    public void saveAll(List<JobInfo> jobInfo) {
+        jobInfoRepository.saveAll(jobInfo);
+    }
+
+    @Override
     public JobInfo lock(JobInfo jobInfo) {
         jobInfo.setLocked(true);
         return save(jobInfo);

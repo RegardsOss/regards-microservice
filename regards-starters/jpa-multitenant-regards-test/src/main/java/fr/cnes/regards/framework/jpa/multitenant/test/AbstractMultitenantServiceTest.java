@@ -78,6 +78,7 @@ import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
  * </code>
  * @author Marc Sordi
  */
+@SuppressWarnings("javadoc")
 @ContextConfiguration(classes = { AbstractMultitenantServiceTest.ScanningConfiguration.class })
 public abstract class AbstractMultitenantServiceTest extends AbstractDaoTest {
 

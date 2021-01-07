@@ -52,6 +52,11 @@ public abstract class AbstractPublisher implements IPublisherContract {
     private final RabbitTemplate rabbitTemplate;
 
     /**
+     * Bean allowing us to declare queue, exchange, binding
+     */
+    private final RabbitAdmin rabbitAdmin;
+
+    /**
      * configuration initializing required bean
      */
     private final IAmqpAdmin amqpAdmin;
@@ -69,6 +74,7 @@ public abstract class AbstractPublisher implements IPublisherContract {
     public AbstractPublisher(RabbitTemplate rabbitTemplate, RabbitAdmin rabbitAdmin, IAmqpAdmin amqpAdmin,
             IRabbitVirtualHostAdmin pRabbitVirtualHostAdmin) {
         this.rabbitTemplate = rabbitTemplate;
+        this.rabbitAdmin = rabbitAdmin;
         this.amqpAdmin = amqpAdmin;
         this.rabbitVirtualHostAdmin = pRabbitVirtualHostAdmin;
     }
@@ -101,10 +107,22 @@ public abstract class AbstractPublisher implements IPublisherContract {
     }
 
     @Override
+    @Transactional
+    public void publish(List<? extends ISubscribable> events) {
+        events.forEach(e -> publish(e));
+    }
+
+    @Override
     public void publish(ISubscribable event, int pPriority) {
         Class<?> eventClass = event.getClass();
         publish(event, EventUtils.getWorkerMode(eventClass), EventUtils.getTargetRestriction(eventClass), pPriority,
                 false);
+    }
+
+    @Override
+    @Transactional
+    public void publish(List<? extends ISubscribable> events, int priority) {
+        events.forEach(e -> publish(e, priority));
     }
 
     @Override
@@ -249,7 +267,6 @@ public abstract class AbstractPublisher implements IPublisherContract {
         try {
             // Bind the connection to the right vHost (i.e. tenant to publish the message)
             rabbitVirtualHostAdmin.bind(virtualHost);
-            amqpAdmin.declareDeadLetter();
 
             // Declare AMQP elements for first publication
             if (! exchangesAndRoutingKeysByEvent.containsKey(eventType.getName())) {
@@ -287,17 +304,6 @@ public abstract class AbstractPublisher implements IPublisherContract {
                         }
                     }
                 }
-                amqpAdmin.declareBinding(queue, exchange, workerMode);
-                publishMessageByTenant(tenant, exchange.getName(),
-                                       amqpAdmin.getRoutingKey(Optional.of(queue), workerMode), event, priority);
-            } else if (WorkerMode.BROADCAST.equals(workerMode)) {
-                // Routing key useless ... always skipped with a fanout exchange
-                publishMessageByTenant(tenant, exchange.getName(),
-                                       amqpAdmin.getRoutingKey(Optional.empty(), workerMode), event, priority);
-            } else {
-                String errorMessage = String.format("Unexpected worker mode : %s.", workerMode);
-                LOGGER.error(errorMessage);
-                throw new IllegalArgumentException(errorMessage);
             }
 
             // Publish
@@ -309,19 +315,18 @@ public abstract class AbstractPublisher implements IPublisherContract {
     }
 
     /**
-     * Publish event in tenant virtual host
+     * Publish event in tenant virtual
      * @param <T> event type
      * @param tenant tenant
      * @param exchangeName {@link Exchange} name
      * @param routingKey routing key (really useful for direct exchange).
      * @param event the event to publish
      * @param priority the event priority
+     * @param headers additional headers
      */
     private final <T> void publishMessageByTenant(String tenant, String exchangeName, String routingKey, T event,
-            int priority) {
+            int priority, Map<String, Object> headers) {
 
-        // Message to publish
-        final TenantWrapper<T> messageSended = new TenantWrapper<>(event, tenant);
         // routing key is unnecessary for fanout exchanges but is for direct exchanges
         rabbitTemplate.convertAndSend(exchangeName, routingKey, event, message -> {
             MessageProperties messageProperties = message.getMessageProperties();
@@ -338,7 +343,7 @@ public abstract class AbstractPublisher implements IPublisherContract {
             }
             messageProperties.setHeader(AmqpConstants.REGARDS_TENANT_HEADER, tenant);
             messageProperties.setPriority(priority);
-            return new Message(pMessage.getBody(), messageProperties);
+            return new Message(message.getBody(), messageProperties);
         });
     }
 

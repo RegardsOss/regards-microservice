@@ -18,8 +18,6 @@
  */
 package fr.cnes.regards.framework.amqp.converter;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -31,9 +29,12 @@ import org.springframework.amqp.support.converter.MessageConversionException;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.util.Assert;
 
-import fr.cnes.regards.framework.amqp.domain.TenantWrapper;
+import fr.cnes.regards.framework.amqp.configuration.AmqpConstants;
 import fr.cnes.regards.framework.amqp.event.EventUtils;
+import fr.cnes.regards.framework.amqp.event.IPollable;
+import fr.cnes.regards.framework.amqp.event.ISubscribable;
 import fr.cnes.regards.framework.amqp.event.JsonMessageConverter;
+import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 
 /**
  * JSON message converters manager
@@ -52,22 +53,20 @@ public class JsonMessageConverters implements MessageConverter {
     @Deprecated
     private static final String CONVERTER_TYPE_HEADER = "__ctype__";
 
+    private final IRuntimeTenantResolver runtimeTenantResolver;
+
     /**
      * Registered JSON message converters
      */
     private final ConcurrentMap<JsonMessageConverter, MessageConverter> converters = new ConcurrentHashMap<>();
 
+    public JsonMessageConverters(IRuntimeTenantResolver runtimeTenantResolver) {
+        this.runtimeTenantResolver = runtimeTenantResolver;
+    }
+
     @Override
     public Message toMessage(Object object, MessageProperties messageProperties) throws MessageConversionException {
-        // Retrieve wrapper event
-        TenantWrapper<?> wrapper = (TenantWrapper<?>) object;
-        JsonMessageConverter jmc = EventUtils.getMessageConverter(wrapper.getContent().getClass());
-        // Add converter selector
-        messageProperties.getHeaders().put(JsonMessageConverters.CONVERTER_TYPE_HEADER, jmc);
-        // Add wrapped type information for Gson deserialization
-        messageProperties.getHeaders().put(Gson2JsonMessageConverter.WRAPPED_TYPE_HEADER,
-                                           wrapper.getContent().getClass().getName());
-        return selectConverter(jmc).toMessage(object, messageProperties);
+        return selectConverter(object, messageProperties).toMessage(object, messageProperties);
     }
 
     @Override
@@ -122,18 +121,32 @@ public class JsonMessageConverters implements MessageConverter {
         return converter;
     }
 
-    private MessageConverter selectConverter(MessageProperties messageProperties) throws MessageConversionException {
-        if (messageProperties == null) {
-            String errorMessage = "Missing message properties";
-            LOGGER.error(errorMessage);
-            throw new MessageConversionException(errorMessage);
+    private MessageConverter selectConverter(Object object, MessageProperties messageProperties)
+            throws MessageConversionException {
+        if (ISubscribable.class.isAssignableFrom(object.getClass())
+                || IPollable.class.isAssignableFrom(object.getClass())) {
+            JsonMessageConverter jmc = EventUtils.getMessageConverter(object.getClass());
+            MessageConverter converter = selectConverter(jmc);
+            // Inject converter selector
+            messageProperties.setHeader(AmqpConstants.REGARDS_CONVERTER_HEADER, jmc);
+            return converter;
+        } else {
+            return selectConverter(messageProperties);
         }
 
-        Object converterType = messageProperties.getHeaders().get(CONVERTER_TYPE_HEADER);
+    }
+
+    private MessageConverter selectConverter(MessageProperties messageProperties) throws MessageConversionException {
+
+        Object converterType = messageProperties.getHeader(AmqpConstants.REGARDS_CONVERTER_HEADER);
         if (converterType == null) {
-            String message = "Cannot determine JSON converter type, falling back to Jackson";
+            // Compatibility
+            converterType = messageProperties.getHeader(CONVERTER_TYPE_HEADER);
+        }
+        if (converterType == null) {
+            String message = "Cannot determine JSON converter type, falling back to GSON";
             LOGGER.trace(message);
-            converterType = JsonMessageConverter.JACKSON.toString();
+            converterType = JsonMessageConverter.GSON.toString();
             // FIXME remove above behavior only enabled for compatibility and uncomment following lines
             //            String errorMessage = "Cannot determine JSON converter type";
             //            LOGGER.error(errorMessage);

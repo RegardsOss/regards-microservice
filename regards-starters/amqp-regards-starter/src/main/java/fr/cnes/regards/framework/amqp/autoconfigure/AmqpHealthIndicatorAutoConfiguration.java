@@ -35,6 +35,8 @@ import fr.cnes.regards.framework.amqp.IPublisher;
  *
  * @author Marc SORDI
  *
+ * FIXME : WIP with spring boot admin
+ *
  */
 @Configuration
 @ConditionalOnProperty(prefix = "regards.amqp", name = "enabled", matchIfMissing = true)

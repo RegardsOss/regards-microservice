@@ -18,7 +18,6 @@
  */
 package fr.cnes.regards.framework.jpa.utils;
 
-import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,11 +34,15 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.sql.DataSource;
+
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.Location;
 import org.flywaydb.core.api.MigrationVersion;
+import org.flywaydb.core.api.migration.JavaMigration;
 import org.flywaydb.core.internal.resource.LoadableResource;
 import org.flywaydb.core.internal.resource.Resource;
+import org.flywaydb.core.internal.scanner.ResourceNameCache;
 import org.flywaydb.core.internal.scanner.Scanner;
 import org.hibernate.cfg.Environment;
 import org.slf4j.Logger;
@@ -115,14 +118,15 @@ public class FlywayDatasourceSchemaHelper extends AbstractDataSourceSchemaHelper
         Preconditions.checkNotNull(schema, "Flyway migration tool requires a database schema");
 
         // Use flyway scanner initialized with script dir (ie resources/scripts)
-        Scanner scanner = new Scanner(Collections.singleton(new Location(scriptLocationPath)), classLoader,
-                                      Charset.defaultCharset());
+        Scanner<JavaMigration> scanner = new Scanner<>(JavaMigration.class,
+                Collections.singleton(new Location(scriptLocationPath)), classLoader, Charset.defaultCharset(),
+                new ResourceNameCache());
+
         // Scan all sql scripts without considering modules (into resources/scripts, there are one dir per module)
         Collection<LoadableResource> sqlScripts = scanner.getResources("", SQL_MIGRATION_SUFFIX);
         // Manage resource (ie SQL scripts) pattern (^scripts/(.*)/.*\\.sql)
-        Pattern scriptPattern = Pattern.compile(
-                "^" + scriptLocationPath + File.separator + "(.*)" + File.separator + ".*\\" + SQL_MIGRATION_SUFFIX
-                        + "$");
+        Pattern scriptPattern = Pattern.compile("^" + scriptLocationPath + File.separator + "(.*)" + File.separator
+                + ".*\\" + SQL_MIGRATION_SUFFIX + "$");
         // Retrieve all modules (scripts are into <module> dir)
         Set<String> modules = new HashSet<>();
         for (Resource script : sqlScripts) {
@@ -201,8 +205,8 @@ public class FlywayDatasourceSchemaHelper extends AbstractDataSourceSchemaHelper
     private Properties getModuleProperties(String module) {
         Properties ppties = new Properties();
 
-        try (InputStream input = classLoader.getResourceAsStream(
-                scriptLocationPath + File.separator + module + File.separator + "dbmodule.properties")) {
+        try (InputStream input = classLoader.getResourceAsStream(scriptLocationPath + File.separator + module
+                + File.separator + "dbmodule.properties")) {
             if (input == null) {
                 LOGGER.info("No module property found for module \"{}\"", module);
             } else {

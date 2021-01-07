@@ -19,10 +19,10 @@
 package fr.cnes.regards.framework.oais;
 
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Path;
 
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -29,9 +29,10 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import fr.cnes.regards.framework.oais.urn.EntityType;
 import fr.cnes.regards.framework.oais.urn.OAISIdentifier;
-import fr.cnes.regards.framework.oais.urn.UniformResourceName;
+import fr.cnes.regards.framework.oais.urn.OaisUniformResourceName;
+import fr.cnes.regards.framework.oais.validator.RegardsOaisUrn;
+import fr.cnes.regards.framework.urn.EntityType;
 
 /**
  * @author Sylvain Vissiere-Guerinet

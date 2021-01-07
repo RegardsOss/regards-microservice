@@ -22,12 +22,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @param <T> Type of Event you are handling
+ * @param <M> Type of message you are handling
  *
  * Interface identifying classes that can handle message from the broker
  * @author svissier
  */
-public interface IHandler<T> {
+public interface IHandler<M> {
 
     /**
      * Logger instance
@@ -68,7 +68,7 @@ public interface IHandler<T> {
     }
 
     @SuppressWarnings("unchecked")
-    default Class<? extends IHandler<T>> getType() {
-        return (Class<? extends IHandler<T>>) this.getClass();
+    default Class<? extends IHandler<M>> getType() {
+        return (Class<? extends IHandler<M>>) this.getClass();
     }
 }
