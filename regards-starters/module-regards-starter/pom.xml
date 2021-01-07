@@ -18,7 +18,7 @@
     <parent>
         <groupId>fr.cnes.regards.framework</groupId>
         <artifactId>regards-starters</artifactId>
-        <version>1.2.1</version>
+        <version>1.4.0</version>
     </parent>
 
     <url>https://github.com/RegardsOss/RegardsOss.github.io</url>
@@ -47,11 +47,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.woodstox</groupId>
-            <artifactId>woodstox-core-asl</artifactId>
-            <version>4.4.1</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>

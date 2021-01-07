@@ -18,14 +18,25 @@
  */
 package fr.cnes.regards.framework.modules.jobs.service;
 
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.hibernate.Hibernate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,13 +45,14 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.ImmutableList;
-
 import fr.cnes.regards.framework.amqp.IPublisher;
 import fr.cnes.regards.framework.jpa.multitenant.transactional.MultitenantTransactional;
 import fr.cnes.regards.framework.modules.jobs.dao.IJobInfoRepository;
 import fr.cnes.regards.framework.modules.jobs.domain.JobInfo;
 import fr.cnes.regards.framework.modules.jobs.domain.JobStatus;
 import fr.cnes.regards.framework.modules.jobs.domain.JobStatusInfo;
+import fr.cnes.regards.framework.modules.jobs.domain.event.JobEvent;
+import fr.cnes.regards.framework.modules.jobs.domain.event.JobEventType;
 import fr.cnes.regards.framework.modules.jobs.domain.event.StopJobEvent;
 import fr.cnes.regards.framework.multitenant.IRuntimeTenantResolver;
 import fr.cnes.regards.framework.multitenant.ITenantResolver;
@@ -50,9 +62,11 @@ import fr.cnes.regards.framework.multitenant.ITenantResolver;
  */
 @Service
 @MultitenantTransactional
-public class JobInfoService implements IJobInfoService {
+public class JobInfoService implements IJobInfoService, ApplicationContextAware {
 
     public static final String SOME_FUNNY_MESSAGE = "Please use create method for creating, you dumb...";
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JobInfoService.class);
 
     @Autowired
     private ITenantResolver tenantResolver;
@@ -66,17 +80,34 @@ public class JobInfoService implements IJobInfoService {
     @Value("${regards.jobs.failed.retention.days:30}")
     private int failedJobsRetentionDays;
 
+    // number of time slots after that we consider a job is dead
+    @Value("${regards.jobs.slot.number:3}")
+    private int timeSlotNumber;
+
     @Autowired
     private IPublisher publisher;
 
-    @Autowired
     private IJobInfoService self;
+
+    private ApplicationContext applicationContext;
 
     /**
      * {@link JobInfo} JPA Repository
      */
     @Autowired
     private IJobInfoRepository jobInfoRepository;
+
+    @EventListener
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void onContextRefreshedEvent(ContextRefreshedEvent event) {
+        if (self == null) {
+            try {
+                self = applicationContext.getBean(IJobInfoService.class);
+            } catch (NoSuchBeanDefinitionException e) {
+                // in this case there is nothing to do but wait for the next event
+            }
+        }
+    }
 
     @Override
     public JobInfo findHighestPriorityQueuedJobAndSetAsToBeRun() {
@@ -123,6 +154,13 @@ public class JobInfoService implements IJobInfoService {
     }
 
     @Override
+    public JobInfo enqueueJobForId(UUID jobInfoId) {
+        JobInfo jobInfo = retrieveJob(jobInfoId);
+        jobInfo.updateStatus(JobStatus.QUEUED);
+        return save(jobInfo);
+    }
+
+    @Override
     public JobInfo save(final JobInfo jobInfo) {
         if (jobInfo.getId() == null) {
             throw new IllegalArgumentException(SOME_FUNNY_MESSAGE);
@@ -151,9 +189,16 @@ public class JobInfoService implements IJobInfoService {
     public void updateJobInfosCompletion(Iterable<JobInfo> jobInfos) {
         for (JobInfo jobInfo : jobInfos) {
             JobStatusInfo status = jobInfo.getStatus();
-            jobInfoRepository.updateCompletion(status.getPercentCompleted(), status.getEstimatedCompletion(),
-                                               jobInfo.getId());
+            jobInfoRepository.updateCompletion(status.getPercentCompleted(),
+                                               status.getEstimatedCompletion(),
+                                               jobInfo.getId(),
+                                               OffsetDateTime.now());
         }
+    }
+
+    @Override
+    public void updateJobInfosHeartbeat(Collection<UUID> ids) {
+        jobInfoRepository.updateHeartbeatDateForIdsIn(OffsetDateTime.now(), ids);
     }
 
     @Override
@@ -181,6 +226,27 @@ public class JobInfoService implements IJobInfoService {
     }
 
     @Override
+    public void cleanDeadJobs() {
+        List<JobInfo> jobs = retrieveJobs(JobStatus.RUNNING);
+        List<JobEvent> failEvents = new ArrayList<>();
+        long deadAfter = JobService.HEARTBEAT_DELAY * timeSlotNumber;
+        OffsetDateTime deadLimitDate = OffsetDateTime.now().minus(deadAfter, ChronoUnit.MILLIS);
+        for (JobInfo job : jobs) {
+            // if last heartbeat date is null it means job has been started but not yet pinged by job engine
+            if (job.getLastHeartbeatDate() != null && job.getLastHeartbeatDate().isBefore(deadLimitDate)) {
+                job.updateStatus(JobStatus.FAILED);
+                LOGGER.warn("Job {} of type {} does not respond anymore after waiting activity ping for {} ms.",
+                            job.getId(),
+                            job.getClassName(),
+                            deadAfter);
+                failEvents.add(new JobEvent(job.getId(), JobEventType.FAILED));
+            }
+        }
+        publisher.publish(failEvents);
+        saveAll(jobs);
+    }
+
+    @Override
     public Long retrieveJobsCount(String className, JobStatus... statuses) {
         return jobInfoRepository.countByClassNameAndStatusStatusIn(className, statuses);
     }
@@ -188,5 +254,10 @@ public class JobInfoService implements IJobInfoService {
     @Override
     public Page<JobInfo> retrieveJobs(String className, Pageable page, JobStatus... statuses) {
         return jobInfoRepository.findByClassNameAndStatusStatusIn(className, statuses, page);
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        this.applicationContext = applicationContext;
     }
 }

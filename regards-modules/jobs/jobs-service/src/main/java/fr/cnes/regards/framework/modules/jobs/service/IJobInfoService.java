@@ -18,9 +18,11 @@
  */
 package fr.cnes.regards.framework.modules.jobs.service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import fr.cnes.regards.framework.jpa.multitenant.transactional.MultitenantTransactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -52,6 +54,8 @@ public interface IJobInfoService {
      * possible</b>
      */
     JobInfo createAsQueued(JobInfo jobInfo);
+
+    JobInfo enqueueJobForId(UUID jobInfoId);
 
     /**
      * @param jobInfo the jobInfo to save
@@ -125,4 +129,16 @@ public interface IJobInfoService {
      * @param statuses jobInfo statuses
      */
     Long retrieveJobsCount(String className, JobStatus... statuses);
+
+    /**
+     * @param jobInfo list of {@link JobInfo} to save
+     */
+    void saveAll(List<JobInfo> jobInfo);
+
+    void updateJobInfosHeartbeat(Collection<UUID> ids);
+
+    /**
+     * Update dead jobs status in database with change their status from RUNNING to FAILED
+     */
+    void cleanDeadJobs();
 }

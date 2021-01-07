@@ -26,8 +26,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
-import fr.cnes.regards.framework.oais.urn.DataType;
-import fr.cnes.regards.framework.oais.validator.ValidOAISDataObject;
+import fr.cnes.regards.framework.urn.DataType;
 import fr.cnes.regards.framework.utils.file.validation.HandledMessageDigestAlgorithm;
 import org.springframework.util.MimeType;
 
@@ -36,7 +35,6 @@ import org.springframework.util.MimeType;
  * @author Sylvain Vissiere-Guerinet
  * @author Marc Sordi
  */
-@ValidOAISDataObject
 public class OAISDataObject {
 
     /**
@@ -65,8 +63,9 @@ public class OAISDataObject {
     private String algorithm;
 
     /**
-     * The checksum (<b>required</b> if data object is not a reference)
+     * The checksum (<b>required</b>)
      */
+    @NotEmpty(message = "Checksum is required")
     private String checksum;
 
     /**

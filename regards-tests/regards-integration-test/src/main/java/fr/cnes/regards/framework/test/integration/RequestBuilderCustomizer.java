@@ -400,6 +400,13 @@ public class RequestBuilderCustomizer {
     }
 
     /**
+     * Add a ResultMatcher expecting given jsonPath to be missing
+     */
+    public RequestBuilderCustomizer expectDoesNotExist(String jsonPath) {
+        return expect(MockMvcResultMatchers.jsonPath(jsonPath).doesNotExist());
+    }
+
+    /**
      * Add snippets to be used to generate specific documentation.
      * To document request parameters (aka GET params) you better use {@link #documentRequestParameters(List<ParameterDescriptor>)} <br/>
      * To document path parameters you better use {@link #documentPathParameters(List<ParameterDescriptor>)} <br/>

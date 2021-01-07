@@ -3,6 +3,7 @@ package fr.cnes.regards.framework.modules.jobs.service;
 import java.util.concurrent.RunnableFuture;
 
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import fr.cnes.regards.framework.modules.jobs.domain.JobInfo;
 
@@ -27,5 +28,8 @@ public interface IJobService {
      */
     void updateCurrentJobsCompletions();
 
+    void jobsHeartbeat();
+
     RunnableFuture<Void> runJob(JobInfo jobInfo, String tenant);
+
 }

@@ -120,6 +120,15 @@ public class JobInfo {
     private boolean locked = false;
 
     /**
+     * Date of the last completion compute
+     */
+    @Column(name = "last_completion_update")
+    private OffsetDateTime lastCompletionUpdate;
+
+    @Column(name = "last_heartbeat_date")
+    private OffsetDateTime lastHeartbeatDate;
+
+    /**
      * Field characteristics of this job. Saved on cascade
      */
     @Embedded
@@ -307,6 +316,22 @@ public class JobInfo {
 
     public void setLocked(boolean locked) {
         this.locked = locked;
+    }
+
+    public OffsetDateTime getLastCompletionUpdate() {
+        return lastCompletionUpdate;
+    }
+
+    public void setLastCompletionUpdate(OffsetDateTime lastCompletionUpdate) {
+        this.lastCompletionUpdate = lastCompletionUpdate;
+    }
+
+    public OffsetDateTime getLastHeartbeatDate() {
+        return lastHeartbeatDate;
+    }
+
+    public void setLastHeartbeatDate(OffsetDateTime lastHeartbeatDate) {
+        this.lastHeartbeatDate = lastHeartbeatDate;
     }
 
     /**

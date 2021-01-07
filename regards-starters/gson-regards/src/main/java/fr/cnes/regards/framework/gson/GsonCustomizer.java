@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.beans.BeansEndpoint.BeanDescriptor;
 import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.SystemHealth;
 import org.springframework.boot.actuate.web.mappings.MappingsEndpoint.ApplicationMappings;
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.MimeType;
@@ -45,11 +46,13 @@ import fr.cnes.regards.framework.gson.adapters.PathAdapter;
 import fr.cnes.regards.framework.gson.adapters.actuator.ApplicationMappingsAdapter;
 import fr.cnes.regards.framework.gson.adapters.actuator.BeanDescriptorAdapter;
 import fr.cnes.regards.framework.gson.adapters.actuator.HealthAdapter;
+import fr.cnes.regards.framework.gson.adapters.actuator.SystemHealthAdapter;
 import fr.cnes.regards.framework.gson.annotation.GsonTypeAdapter;
 import fr.cnes.regards.framework.gson.annotation.GsonTypeAdapterBean;
 import fr.cnes.regards.framework.gson.annotation.GsonTypeAdapterFactory;
 import fr.cnes.regards.framework.gson.annotation.GsonTypeAdapterFactoryBean;
 import fr.cnes.regards.framework.gson.strategy.GsonIgnoreExclusionStrategy;
+import io.vavr.gson.VavrGson;
 
 /**
  * Static Gson customizer
@@ -65,7 +68,8 @@ public final class GsonCustomizer {
 
     public static GsonBuilder gsonBuilder(Optional<GsonProperties> properties,
             Optional<ApplicationContext> applicationContext) {
-        GsonBuilder builder = new GsonBuilder();
+        GsonBuilder builder = new GsonBuilder().enableComplexMapKeySerialization();
+        VavrGson.registerAll(builder);
         customizeBuilder(builder);
         addTypeAdapters(builder, properties);
         addBeanFactories(builder, applicationContext);
@@ -82,6 +86,7 @@ public final class GsonCustomizer {
         builder.addSerializationExclusionStrategy(new GsonIgnoreExclusionStrategy());
         // Custom actuator deserialization
         builder.registerTypeAdapter(Health.class, new HealthAdapter());
+        builder.registerTypeAdapter(SystemHealth.class, new SystemHealthAdapter());
         builder.registerTypeAdapter(BeanDescriptor.class, new BeanDescriptorAdapter());
         builder.registerTypeAdapter(ApplicationMappings.class, new ApplicationMappingsAdapter());
     }
@@ -95,6 +100,12 @@ public final class GsonCustomizer {
     private static void addTypeAdapters(GsonBuilder builder, Optional<GsonProperties> properties) {
         if (properties.isPresent()) {
             GsonAnnotationProcessor.process(builder, properties.get().getScanPrefix());
+            if (properties.get().getPrettyPrint()) {
+                builder.setPrettyPrinting();
+            }
+            if (properties.get().getSerializeNulls()) {
+                builder.serializeNulls();
+            }
         }
     }
 

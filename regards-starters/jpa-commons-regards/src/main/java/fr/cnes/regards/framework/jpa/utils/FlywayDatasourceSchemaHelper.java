@@ -96,9 +96,8 @@ public class FlywayDatasourceSchemaHelper extends AbstractDataSourceSchemaHelper
                 .dataSource(dataSource) // Associate datasource
                 .locations(scriptLocationPath + File.separator + moduleName) // Set module location
                 .schemas(schema) // Specify working schema
-                .table(moduleName + "_schema_version") // Create one migration table by module
-                .baselineOnMigrate(true)
-                .baselineVersion(MigrationVersion.fromVersion("0"))// When creating module metadata table,
+                .defaultSchema(schema).table(moduleName + "_schema_version") // Create one migration table by module
+                .baselineOnMigrate(true).baselineVersion(MigrationVersion.fromVersion("0"))// When creating module metadata table,
                 // set beginning version to 0 in order to properly apply all init scripts
                 .load();
         // Do migrate

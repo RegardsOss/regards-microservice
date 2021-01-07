@@ -370,7 +370,7 @@ public class PluginConfiguration implements IIdentifiable<Long> {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
+        int prime = 31;
         int result = 1;
         result = (prime * result) + (businessId == null ? 0 : businessId.hashCode());
         result = (prime * result) + (pluginId == null ? 0 : pluginId.hashCode());

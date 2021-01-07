@@ -29,6 +29,10 @@ public class GsonProperties {
 
     private String scanPrefix = "fr.cnes.regards";
 
+    private Boolean prettyPrint = Boolean.FALSE;
+
+    private Boolean serializeNulls = Boolean.FALSE;
+
     public String getScanPrefix() {
         return scanPrefix;
     }
@@ -36,4 +40,21 @@ public class GsonProperties {
     public void setScanPrefix(String pScanPrefix) {
         scanPrefix = pScanPrefix;
     }
+
+    public Boolean getPrettyPrint() {
+        return prettyPrint;
+    }
+
+    public void setPrettyPrint(Boolean prettyPrint) {
+        this.prettyPrint = prettyPrint;
+    }
+
+    public Boolean getSerializeNulls() {
+        return serializeNulls;
+    }
+
+    public void setSerializeNulls(Boolean serializeNulls) {
+        this.serializeNulls = serializeNulls;
+    }
+
 }

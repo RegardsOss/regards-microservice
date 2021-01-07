@@ -53,7 +53,14 @@ public class Gson2JsonMessageConverter extends AbstractMessageConverter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Gson2JsonMessageConverter.class);
 
-    public static final String WRAPPED_TYPE_HEADER = "__gson_wrapped_type__";
+    private static final String CONVERSION_ERROR = "Cannot convert incoming message : %s";
+
+    /**
+     * @deprecated Use {@link AmqpConstants#REGARDS_TYPE_HEADER} instead.
+     * Will be remove in V1.2
+     */
+    @Deprecated
+    private static final String WRAPPED_TYPE_HEADER = "__gson_wrapped_type__";
 
     public static final String DEFAULT_CHARSET = "UTF-8";
 

@@ -18,6 +18,7 @@
  */
 package fr.cnes.regards.framework.amqp;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -87,4 +88,16 @@ public interface IPublisherContract {
      * @param eventType {@link IPollable} event type
      */
     void purgeQueue(Class<? extends IPollable> eventType);
+
+    /**
+     * Broadcast message to specified exchange optionally creating a binded queue.
+     */
+    void broadcast(String exchangeName, Optional<String> queueName, int priority, Object message,
+            Map<String, Object> headers);
+
+    /**
+     * Broadcast message to specified exchange optionally creating a binded queue.
+     */
+    void broadcastAll(String exchangeName, Optional<String> queueName, int priority, Collection<?> messages,
+            Map<String, Object> headers);
 }

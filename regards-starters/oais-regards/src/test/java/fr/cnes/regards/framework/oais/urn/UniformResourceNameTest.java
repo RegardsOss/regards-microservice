@@ -36,9 +36,9 @@ public class UniformResourceNameTest {
     @Requirement("REGARDS_DSL_SYS_ARC_410")
     @Purpose("The SIP identifier is an URN")
     public void testFromStringSIP() {
-        final UniformResourceName sipUrn = new UniformResourceName(OAISIdentifier.SIP, EntityType.COLLECTION, "CDPP",
-                UUID.randomUUID(), 1);
-        final Pattern pattern = Pattern.compile(UniformResourceName.URN_PATTERN);
+        final OaisUniformResourceName sipUrn = new OaisUniformResourceName(OAISIdentifier.SIP, EntityType.COLLECTION,
+                "CDPP", UUID.randomUUID(), 1, null, null);
+        final Pattern pattern = Pattern.compile(OaisUniformResourceName.URN_PATTERN);
         Assert.assertTrue(pattern.matcher(sipUrn.toString()).matches());
     }
 
@@ -56,9 +56,9 @@ public class UniformResourceNameTest {
     @Requirement("REGARDS_DSL_SYS_ARC_410")
     @Purpose("The AIP identifier is an URN")
     public void testFromStringAIPWithoutRevision() {
-        final UniformResourceName aipUrn = new UniformResourceName(OAISIdentifier.AIP, EntityType.COLLECTION, "CDPP",
-                UUID.randomUUID(), 1, 2L);
-        final Pattern pattern = Pattern.compile(UniformResourceName.URN_PATTERN);
+        final OaisUniformResourceName aipUrn = new OaisUniformResourceName(OAISIdentifier.AIP, EntityType.COLLECTION,
+                "CDPP", UUID.randomUUID(), 1, 2L, null);
+        final Pattern pattern = Pattern.compile(OaisUniformResourceName.URN_PATTERN);
         Assert.assertTrue(pattern.matcher(aipUrn.toString()).matches());
     }
 
@@ -66,9 +66,9 @@ public class UniformResourceNameTest {
     @Requirement("REGARDS_DSL_SYS_ARC_410")
     @Purpose("The AIP identifier is an URN")
     public void testFromStringAIPWithoutOrder() {
-        final UniformResourceName aipUrn = new UniformResourceName(OAISIdentifier.AIP, EntityType.COLLECTION, "CDPP",
-                UUID.randomUUID(), 1, "revision");
-        final Pattern pattern = Pattern.compile(UniformResourceName.URN_PATTERN);
+        final OaisUniformResourceName aipUrn = new OaisUniformResourceName(OAISIdentifier.AIP, EntityType.COLLECTION,
+                "CDPP", UUID.randomUUID(), 1, null, "revision");
+        final Pattern pattern = Pattern.compile(OaisUniformResourceName.URN_PATTERN);
         Assert.assertTrue(pattern.matcher(aipUrn.toString()).matches());
     }
 
@@ -76,10 +76,23 @@ public class UniformResourceNameTest {
     @Requirement("REGARDS_DSL_SYS_ARC_410")
     @Purpose("The AIP identifier is an URN")
     public void testFromStringAIPWithoutOrderOrRevision() {
-        final UniformResourceName aipUrn = new UniformResourceName(OAISIdentifier.AIP, EntityType.COLLECTION, "CDPP",
-                UUID.randomUUID(), 1);
-        final Pattern pattern = Pattern.compile(UniformResourceName.URN_PATTERN);
+        final OaisUniformResourceName aipUrn = new OaisUniformResourceName(OAISIdentifier.AIP, EntityType.COLLECTION,
+                "CDPP", UUID.randomUUID(), 1, null, null);
+        final Pattern pattern = Pattern.compile(OaisUniformResourceName.URN_PATTERN);
         Assert.assertTrue(pattern.matcher(aipUrn.toString()).matches());
+    }
+
+    @Test
+    public void testFromString() {
+        OaisUniformResourceName oaisUrn = OaisUniformResourceName.fromString("URN:AIP:DATA:project1:9b702995-e2b9-393c-8a74-9b396db0edde:V1");
+        Assert.assertEquals("AIP", oaisUrn.getIdentifier());
+        Assert.assertEquals(EntityType.DATA, oaisUrn.getEntityType());
+        Assert.assertEquals("project1", oaisUrn.getTenant());
+        Assert.assertEquals(UUID.fromString("9b702995-e2b9-393c-8a74-9b396db0edde"), oaisUrn.getEntityId());
+        Assert.assertEquals(new Integer(1), oaisUrn.getVersion());
+        Assert.assertFalse(oaisUrn.isLast());
+        Assert.assertNull(oaisUrn.getOrder());
+        Assert.assertNull(oaisUrn.getRevision());
     }
 
 }

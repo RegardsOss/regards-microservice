@@ -21,7 +21,7 @@
     <parent>
         <groupId>fr.cnes.regards</groupId>
         <artifactId>regards-aggregator-parent</artifactId>
-        <version>1.2.1</version>
+        <version>1.4.0</version>
         <relativePath/>
     </parent>
 
@@ -52,6 +52,7 @@
         <module>templates</module>
         <module>workspace</module>
         <module>locks</module>
+        <module>dump</module>
     </modules>
 
 </project>

@@ -34,13 +34,38 @@ public interface IHandler<T> {
      */
     Logger LOGGER = LoggerFactory.getLogger(IHandler.class);
 
-    default void handleAndLog(TenantWrapper<T> wrapper) {
+    /**
+     * @deprecated User {@link #handleAndLog(String, Object)} instead.
+     * @param wrapper
+     */
+    @Deprecated
+    default void handleAndLog(TenantWrapper<M> wrapper) {
         LOGGER.debug("Received {}, From {}", wrapper.getContent().getClass().getSimpleName(), wrapper.getTenant());
         LOGGER.trace("Event received: {}", wrapper.getContent().toString());
         handle(wrapper);
     }
 
-    void handle(TenantWrapper<T> wrapper);
+    default void handleAndLog(String tenant, M message) {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.trace("Received {}, From {}", message.getClass().getSimpleName(), tenant);
+            LOGGER.trace("Event received: {}", message.toString());
+        }
+        handle(tenant, message);
+    }
+
+    /**
+     * @deprecated Use {@link #handle(String, Object)} instead.
+     */
+    @Deprecated
+    default void handle(TenantWrapper<M> wrapper) {
+        throw new UnsupportedOperationException("This method is deprecated");
+    }
+
+    default void handle(String tenant, M message) {
+        // Default implementation for compatibility
+        // This interface will be required in next version
+        handle(TenantWrapper.build(message, tenant));
+    }
 
     @SuppressWarnings("unchecked")
     default Class<? extends IHandler<T>> getType() {

@@ -105,6 +105,11 @@ public class RegardsAmqpAdmin implements IAmqpAdmin {
      */
     private String microserviceInstanceId;
 
+    /*
+     * Namespace used in queue and exchange naming
+     */
+    private final String namespace;
+
     /**
      * Whether above instance identifier is generated or not. If so, queues using instance identifier will be auto delete queues.
      */
